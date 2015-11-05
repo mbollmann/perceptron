@@ -34,6 +34,7 @@ class CombinatorialPerceptron(Perceptron):
     def train(self, x, y, seed=1):
         (x, y) = self._preprocess_train(x, y)
         self._w = np.zeros((self.feature_count, self.label_count))
+        all_w = []
 
         for iteration in range(self.iterations):
             # random permutation
@@ -53,6 +54,9 @@ class CombinatorialPerceptron(Perceptron):
             # evaluate
             correct = sum(self.predict(x) == y)
             accuracy = 1.0 * correct / len(x)
-            self._log("Iteration %2i:  accuracy %.4f" % (iteration, accuracy))
+            self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
+            if self.averaging:
+                all_w.append(self._w.copy())
 
-        # TODO: averaging!
+        if self.averaging:
+            self._w = sum(all_w) / len(all_w)
