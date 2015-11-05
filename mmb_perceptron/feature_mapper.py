@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import collections
+import numpy as np
 
 class FeatureMapper(collections.Mapping):
     """Maps arbitrary (feature) names to vector indices.
@@ -9,8 +10,10 @@ class FeatureMapper(collections.Mapping):
     bracket notation will return a vector index for that element; if it doesn't
     exist yet, it will be created automatically.
     """
+
     def __init__(self):
         self.features = {}
+        self.featurelist = []
 
     def __getitem__(self, key):
         try:
@@ -31,10 +34,25 @@ class FeatureMapper(collections.Mapping):
     def get(self, key, default=None):
         return self.features.get(key, default)
 
+    def get_name(self, value):
+        return self.featurelist[value]
+
     def add(self, item):
-        value = self.features[item] = len(features)
+        value = self.features[item] = len(self.features)
+        self.featurelist.append(item)
         return value
+
+    def extend(self, elems):
+        for e in elems:
+            if e not in self.features:
+                self.add(e)
 
     def map_list(self, elems):
         """Maps a list of labels and returns a list of indices."""
         return [self[e] for e in elems]
+
+    def map_to_vector(self, feat):
+        vec = np.zeros(len(self.features))
+        for name, value in feat.iteritems():
+            vec[self[name]] = value
+        return vec

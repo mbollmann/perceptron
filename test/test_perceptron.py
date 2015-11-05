@@ -2,6 +2,18 @@
 
 import numpy as np
 from mmb_perceptron import CombinatorialPerceptron
+from mmb_perceptron.feature_extractor import AbstractFeatureExtractor
+
+class BinaryFeatureExtractor(AbstractFeatureExtractor):
+    _feature_set = ('bias', 'lhs_true', 'rhs_true')
+
+    def get(self, x):
+        features = {'bias': 1.0}
+        if x.startswith("True"):
+            features['lhs_true'] = 1.0
+        if x.endswith("True"):
+            features['rhs_true'] = 1.0
+        return features
 
 class TestCombinatorialPerceptron(object):
     def test_logical_or(self):
@@ -54,3 +66,16 @@ class TestCombinatorialPerceptron(object):
         assert p.predict_vector(np.array([0,1,1,0,1])) == 2
         assert p.predict_vector(np.array([1,0,1,0,1])) == 2
         assert p.predict_vector(np.array([1,1,1,1,1])) == 2
+
+    def test_logical_or_with_features(self):
+        x = ["False/False", "False/True", "True/False", "True/True"]
+        y = ["False", "True", "True", "True"]
+        p = CombinatorialPerceptron(
+                iterations=100,
+                feature_extractor=BinaryFeatureExtractor()
+            )
+        p.train(x, y)
+        assert p.predict_datapoint("False/True") == "True"
+        assert p.predict_datapoint("True/False") == "True"
+        assert p.predict_datapoint("True/True") == "True"
+        assert p.predict_datapoint("False/False") == "False"
