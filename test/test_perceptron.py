@@ -2,10 +2,11 @@
 
 import numpy as np
 from mmb_perceptron import CombinatorialPerceptron
-from mmb_perceptron.feature_extractor import AbstractFeatureExtractor
+from mmb_perceptron.feature_extractor import FeatureExtractor
 
-class BinaryFeatureExtractor(AbstractFeatureExtractor):
-    _feature_set = ('bias', 'lhs_true', 'rhs_true')
+class BinaryFeatureExtractor(FeatureExtractor):
+    def init(self, dataset):
+        self._label_mapper.extend(('bias', 'lhs_true', 'rhs_true'))
 
     def get(self, x):
         features = {'bias': 1.0}
@@ -75,7 +76,7 @@ class TestCombinatorialPerceptron(object):
                 feature_extractor=BinaryFeatureExtractor()
             )
         p.train(x, y)
-        assert p.predict_datapoint("False/True") == "True"
-        assert p.predict_datapoint("True/False") == "True"
-        assert p.predict_datapoint("True/True") == "True"
-        assert p.predict_datapoint("False/False") == "False"
+        assert p.predict("False/True") == "True"
+        assert p.predict("True/False") == "True"
+        assert p.predict("True/True") == "True"
+        assert p.predict("False/False") == "False"

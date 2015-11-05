@@ -3,8 +3,8 @@
 import collections
 import numpy as np
 
-class FeatureMapper(collections.Mapping):
-    """Maps arbitrary (feature) names to vector indices.
+class LabelMapper(collections.Mapping):
+    """Maps arbitrary (feature/class) labels to vector indices.
 
     Behaves mostly like a read-only dictionary: accessing an element with
     bracket notation will return a vector index for that element; if it doesn't

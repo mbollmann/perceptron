@@ -27,7 +27,7 @@ class CombinatorialPerceptron(Perceptron):
     def predict_vector(self, vec):
         return np.argmax(np.dot(vec, self._w))
 
-    def predict(self, x):
+    def predict_all(self, x):
         assert all([isinstance(e, np.ndarray) for e in x])
         return np.argmax(np.dot(x, self._w), axis=1).transpose()
 
@@ -52,7 +52,7 @@ class CombinatorialPerceptron(Perceptron):
                     self._w[:, guess]  -= self.learning_rate * x[idx]
 
             # evaluate
-            correct = sum(self.predict(x) == y)
+            correct = sum(self.predict_all(x) == y)
             accuracy = 1.0 * correct / len(x)
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
             if self.averaging:
