@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division, absolute_import, unicode_literals
 import collections
 
 class FeatureMapper(collections.Mapping):
@@ -11,7 +10,6 @@ class FeatureMapper(collections.Mapping):
     exist yet, it will be created automatically.
     """
     def __init__(self):
-        self.counter = 0
         self.features = {}
 
     def __getitem__(self, key):
@@ -25,7 +23,7 @@ class FeatureMapper(collections.Mapping):
         return key in self.features
 
     def __len__(self):
-        return self.counter #   == len(self.features)
+        return len(self.features)
 
     def __iter__(self):
         return self.features.__iter__()
@@ -34,8 +32,7 @@ class FeatureMapper(collections.Mapping):
         return self.features.get(key, default)
 
     def add(self, item):
-        value = self.features[item] = self.counter
-        self.counter += 1
+        value = self.features[item] = len(features)
         return value
 
     def map_list(self, elems):
