@@ -8,9 +8,18 @@ from .label_mapper import LabelMapper
 class Perceptron(object):
     """A perceptron classifier.
     """
-    _label_mapper = None
+    _label_mapper = None  # maps class labels to vector indices
     label_count = 0
     feature_count = 0
+
+    # for sequence-based prediction:
+    _left_context_template = "__BEGIN_{0}__"
+    _right_context_template = "__END_{0}__"
+    _initial_history_template = "__BEGIN_TAG_{0}__"
+    _left_context_size = 0
+    _left_context = []
+    _right_context = []
+    _initial_history = []
 
     def __init__(self, iterations=5, learning_rate=1, averaging=True, \
                  feature_extractor=None, log_to=None):
@@ -32,6 +41,8 @@ class Perceptron(object):
     @feature_extractor.setter
     def feature_extractor(self, obj):
         self._feature_extractor = obj
+        if obj is not None:
+            self.set_context_attributes(obj)
 
     def predict_vector(self, vec):
         """Predict the class label of a given feature vector.
@@ -47,23 +58,66 @@ class Perceptron(object):
         return guess
 
     def predict_all(self, x):
-        """Predict the class label of a given dataset (= list of feature vectors).
+        """Predict the class labels of a given dataset (= list of feature vectors).
         """
-        raise NotImplementedError("predict function not implemented")
+        return [self.predict(y) for y in x]
+
+    def predict_sequence(self, x):
+        """Predict the class labels of a given sequence of data points.
+
+        Requires a feature extractor to be given; the feature extractor can
+        derive its features from the full sequence of data points and the
+        previous predictions.
+        """
+        (padded_x, history, startpos) = self._initialize_sequence(x)
+        for i in range(startpos, startpos + len(x)):
+            guess = self.predict_vector(
+                self._feature_extractor.get_vector_seq(
+                    padded_x, i, history=history
+                ))
+            history.append(guess)
+        guesses = history[self._left_context_size:]
+        if self._label_mapper is not None:
+            return self._label_mapper.get_names(guesses)
+        return guesses
 
     def train(self, x, y, seed=1):
         """Train the perceptron.
 
         Parameters:
-          x - A list of numpy feature vectors (or a matrix? idk yet)
+          x - A list of numpy feature vectors
           y - A list of correct class labels
         """
         raise NotImplementedError("train function not implemented")
 
+    def set_context_attributes(self, obj):
+        """Set context attributes from an object providing context size,
+        typically the feature extractor.
+
+        Required for sequence-based prediction only.
+        """
+        (left_context_size, right_context_size) = obj.context_size
+        self._left_context, self._right_context, self._initial_history = [], [], []
+        self._left_context_size = left_context_size
+        for i in range(left_context_size):
+            self._left_context.append(self._left_context_template.format(i))
+            self._initial_history.append(self._initial_history_template.format(i))
+        for j in range(right_context_size):
+            self._right_context.append(self._right_context_template.format(i))
+
+    def _initialize_sequence(self, seq):
+        """Prepare a sequence of data points for sequence-based prediction.
+
+        Pads the sequence with dummy context, if required, and prepares the
+        prediction history.
+        """
+        padded_seq = self._left_context + seq + self._right_context
+        history = self._initial_history
+        startpos = self._left_context_size
+        return (padded_seq, history, startpos)
+
     def _preprocess_data(self, data):
         """Preprocess a full list of training data.
-
-        TODO: Currently only accepts lists of numpy vectors.
         """
         if len(data) < 1:
             self.feature_count = 0

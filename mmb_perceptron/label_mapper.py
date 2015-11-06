@@ -37,6 +37,9 @@ class LabelMapper(collections.Mapping):
     def get_name(self, value):
         return self.featurelist[value]
 
+    def get_names(self, values):
+        return [self.featurelist[v] for v in values]
+
     def add(self, item):
         value = self.features[item] = len(self.features)
         self.featurelist.append(item)

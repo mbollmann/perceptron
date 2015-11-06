@@ -80,3 +80,17 @@ class TestCombinatorialPerceptron(object):
         assert p.predict("True/False") == "True"
         assert p.predict("True/True") == "True"
         assert p.predict("False/False") == "False"
+
+    def test_logical_or_with_sequence_prediction(self):
+        # rationale: sequence prediction should be identical to individual
+        # prediction when the feature extractor is oblivious to it
+        x = ["False/False", "False/True", "True/False", "True/True"]
+        y = ["False", "True", "True", "True"]
+        p = CombinatorialPerceptron(
+                iterations=100,
+                feature_extractor=BinaryFeatureExtractor()
+            )
+        p.train(x, y)
+        seq = ["False/True", "True/False", "True/True", "False/False"]
+        expected = ["True", "True", "True", "False"]
+        assert p.predict_sequence(seq) == expected
