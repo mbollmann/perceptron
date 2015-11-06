@@ -25,6 +25,11 @@ class FeatureExtractor(object):
         """
         self._label_mapper.add("bias")
 
+    def init_seq(self, dataset):
+        """Initialize the feature extractor with a sequential dataset.
+        """
+        self._label_mapper.add("bias")
+
     @property
     def context_size(self):
         """The maximum number of entries the feature extractor looks

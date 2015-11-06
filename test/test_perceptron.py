@@ -8,6 +8,9 @@ class BinaryFeatureExtractor(FeatureExtractor):
     def init(self, dataset):
         self._label_mapper.extend(('bias', 'lhs_true', 'rhs_true'))
 
+    def init_seq(self, dataset):
+        self._label_mapper.extend(('bias', 'lhs_true', 'rhs_true'))
+
     def get(self, x):
         features = {'bias': 1.0}
         if x.startswith("True"):
@@ -94,3 +97,24 @@ class TestCombinatorialPerceptron(object):
         seq = ["False/True", "True/False", "True/True", "False/False"]
         expected = ["True", "True", "True", "False"]
         assert p.predict_sequence(seq) == expected
+
+    def test_logical_or_with_sequence_training(self):
+        x = [["False/False", "False/True"],
+             ["True/False", "True/True"],
+             ["True/False", "False/True", "False/False"],
+             ["True/True", "False/False"]]
+        y = [["False", "True"],
+             ["True", "True"],
+             ["True", "True", "False"],
+             ["True", "False"]]
+        p = CombinatorialPerceptron(
+                iterations=50,
+                feature_extractor=BinaryFeatureExtractor()
+            )
+        p.train_sequence(x, y)
+        seq = ["False/True", "True/False", "True/True", "False/False"]
+        expected = ["True", "True", "True", "False"]
+        assert p.predict_sequence(seq) == expected
+
+# TODO: test with actual sequence-based feature extractor
+# TODO: test with dynamic feature growth (when it's implemented)

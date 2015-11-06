@@ -49,20 +49,25 @@ class Perceptron(object):
         """
         raise NotImplementedError("predict_vector function not implemented")
 
-    def predict(self, x):
+    def predict(self, x, as_label=True):
         """Predict the class label of a given data point.
         """
         guess = self.predict_vector(self._feature_extractor.get_vector(x))
-        if self._label_mapper is not None:
+        if self._label_mapper is not None and as_label:
             return self._label_mapper.get_name(guess)
         return guess
 
-    def predict_all(self, x):
+    def predict_all(self, x, as_label=True):
         """Predict the class labels of a given dataset (= list of feature vectors).
         """
-        return [self.predict(y) for y in x]
+        return [self.predict(y, as_label=as_label) for y in x]
 
-    def predict_sequence(self, x):
+    def predict_all_sequences(self, x, as_label=True):
+        """Predict the class labels of a given sequential dataset.
+        """
+        return [self.predict_sequence(y, as_label=as_label) for y in x]
+
+    def predict_sequence(self, x, as_label=True):
         """Predict the class labels of a given sequence of data points.
 
         Requires a feature extractor to be given; the feature extractor can
@@ -77,7 +82,7 @@ class Perceptron(object):
                 ))
             history.append(guess)
         guesses = history[self._left_context_size:]
-        if self._label_mapper is not None:
+        if self._label_mapper is not None and as_label:
             return self._label_mapper.get_names(guesses)
         return guesses
 
@@ -85,10 +90,19 @@ class Perceptron(object):
         """Train the perceptron.
 
         Parameters:
-          x - A list of numpy feature vectors
+          x - A list of data points or feature vectors
           y - A list of correct class labels
         """
         raise NotImplementedError("train function not implemented")
+
+    def train_sequence(self, x, y, seed=1):
+        """Train the perceptron on sequences.
+
+        Parameters:
+          x - A list of sequences of data points
+          y - A list of sequences of correct class labels
+        """
+        raise NotImplementedError("train_seq function not implemented")
 
     def set_context_attributes(self, obj):
         """Set context attributes from an object providing context size,
@@ -112,7 +126,7 @@ class Perceptron(object):
         prediction history.
         """
         padded_seq = self._left_context + seq + self._right_context
-        history = self._initial_history
+        history = self._initial_history[:]
         startpos = self._left_context_size
         return (padded_seq, history, startpos)
 
@@ -144,8 +158,23 @@ class Perceptron(object):
         self.label_count = np.unique(labels).shape[0]
         return labels
 
+    def _preprocess_labels_seq(self, label_seq):
+        self._label_mapper = LabelMapper()
+        new_seq = [np.array(self._label_mapper.map_list(l)) for l in label_seq]
+        self.label_count = len(self._label_mapper)
+        return new_seq
+
     def _preprocess_train(self, x, y):
         assert len(x) == len(y)
         new_x = self._preprocess_data(x)
         new_y = self._preprocess_labels(y)
         return (new_x, new_y)
+
+    def _preprocess_train_seq(self, x, y):
+        assert len(x) == len(y)
+        # cannot preprocess the data (since vectors can depend on previous
+        # predictions) except for forwarding it to the feature extractor
+        self._feature_extractor.init_seq(x)
+        self.feature_count = self._feature_extractor.feature_count
+        new_y = self._preprocess_labels_seq(y)
+        return (x, new_y)
