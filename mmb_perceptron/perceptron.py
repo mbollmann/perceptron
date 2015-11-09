@@ -170,10 +170,13 @@ class Perceptron(object):
                 self._feature_extractor.get_vector(
                     padded_x, i, history=history
                 ))
-            history.append(guess)
+            if self._label_mapper is not None:
+                history.append(self._label_mapper.get_name(guess))
+            else:
+                history.append(guess)
         guesses = history[self._left_context_size:]
-        if self._label_mapper is not None and as_label:
-            return self._label_mapper.get_names(guesses)
+        if self._label_mapper is not None and not as_label:
+            return self._label_mapper.map_list(guesses)
         return guesses
 
     def _predict_all_sequenced(self, x, as_label=True):

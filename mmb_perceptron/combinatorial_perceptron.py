@@ -107,12 +107,15 @@ class CombinatorialPerceptron(Perceptron):
                 if len(vec) > self._w.shape[0]:
                     self._w.resize((self.feature_count, self.label_count))
                 guess = np.argmax(np.dot(vec, self._w)) # predict_vector
-                truth = truth_seq[pos]
+                truth = truth_seq[pos - self._left_context_size]
                 if guess != truth:
                     # update step
                     self._w[:, truth] += self.learning_rate * vec
                     self._w[:, guess] -= self.learning_rate * vec
-                history.append(guess)
+                if self._label_mapper is not None:
+                    history.append(self._label_mapper.get_name(guess))
+                else:
+                    history.append(guess)
 
     def _evaluate_training_set_sequenced(self, x, y):
         # TODO: could we skip this step and use the accuracy of the
