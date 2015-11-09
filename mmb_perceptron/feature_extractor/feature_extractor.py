@@ -47,11 +47,11 @@ class FeatureExtractor(object):
     def sequenced(self, status):
         self._sequenced = status
         if status:
-            self.init = self._init_independent
+            self.init = self._init_sequenced
             self.get = self._get_sequenced
             self.get_vector = self._get_vector_sequenced
         else:
-            self.init = self._init_sequenced
+            self.init = self._init_independent
             self.get = self._get_independent
             self.get_vector = self._get_vector_independent
 
