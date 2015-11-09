@@ -5,8 +5,10 @@ from mmb_perceptron import CombinatorialPerceptron
 from mmb_perceptron.feature_extractor import FeatureExtractor
 
 class BinaryFeatureExtractor(FeatureExtractor):
+    _binary_featureset = ('bias', 'lhs_true', 'rhs_true')
+
     def _init_independent(self, dataset):
-        self._label_mapper.extend(('bias', 'lhs_true', 'rhs_true'))
+        self._label_mapper.extend(self._binary_featureset)
 
     _init_sequenced = _init_independent
 
@@ -23,6 +25,13 @@ class BinaryFeatureExtractor(FeatureExtractor):
 
 
 class TestCombinatorialPerceptron(object):
+    """Tests for the combinatorial perceptron.
+
+    Contains tests that primarily test the perceptron with "sequenced=False".
+    Includes some tests with "sequenced=True" as well, though the feature
+    extractor and training data are always non-sequential in nature.
+    """
+
     def test_logical_or(self):
         x = [np.array([0,0,1]),
              np.array([0,1,1]),
@@ -121,5 +130,25 @@ class TestCombinatorialPerceptron(object):
         expected = ["True", "True", "True", "False"]
         assert p.predict(seq) == expected
 
-# TODO: test with actual sequence-based feature extractor
-# TODO: test with dynamic feature growth (when it's implemented)
+    def test_logical_or_with_dynamic_feature_growth(self):
+        x = [["False/False", "False/True"],
+             ["True/False", "True/True"],
+             ["True/False", "False/True", "False/False"],
+             ["True/True", "False/False"]]
+        y = [["False", "True"],
+             ["True", "True"],
+             ["True", "True", "False"],
+             ["True", "False"]]
+        bfe = BinaryFeatureExtractor()
+        # only start with the bias feature, and let the other ones be grown
+        # automatically over time
+        bfe._binary_featureset = ('bias',)
+        p = CombinatorialPerceptron(
+                iterations=50,
+                feature_extractor=bfe,
+                sequenced=True
+            )
+        p.train(x, y)
+        seq = ["False/True", "True/False", "True/True", "False/False"]
+        expected = ["True", "True", "True", "False"]
+        assert p.predict(seq) == expected

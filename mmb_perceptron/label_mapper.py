@@ -55,6 +55,7 @@ class LabelMapper(collections.Mapping):
         return [self[e] for e in elems]
 
     def map_to_vector(self, feat):
+        self.extend(feat)
         vec = np.zeros(len(self.features))
         for name, value in feat.iteritems():
             vec[self[name]] = value

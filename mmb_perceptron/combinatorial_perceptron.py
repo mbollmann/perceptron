@@ -34,7 +34,14 @@ class CombinatorialPerceptron(Perceptron):
             return self._label_mapper.get_names(guesses)
         return guesses
 
-    def _train_common(self, x, y, seed=1, train_func=None, eval_func=None):
+    def _train_common(self, x, y, seed=1):
+        if self.sequenced:
+            train_func = self._perform_train_iteration_sequenced
+            eval_func = self._evaluate_training_set_sequenced
+        else:
+            train_func = self._perform_train_iteration_independent
+            eval_func = self._evaluate_training_set_independent
+
         (x, y) = self._preprocess_train(x, y)
         self._w = np.zeros((self.feature_count, self.label_count))
         all_w = []
@@ -44,8 +51,10 @@ class CombinatorialPerceptron(Perceptron):
             np.random.seed(seed)
             permutation = np.random.permutation(len(x))
             seed += 1
+
             # training
             train_func(x, y, permutation)
+
             # evaluation
             accuracy = eval_func(x, y)
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
@@ -53,18 +62,17 @@ class CombinatorialPerceptron(Perceptron):
                 all_w.append(self._w.copy())
 
         if self.averaged:
-            # TODO: if feature count changed during training, we must also
-            # (potentially) resize the all_w elements
+            if self.sequenced: # check if feature count changed between iterations
+                for w in all_w:
+                    if w.shape != (self.feature_count, self.label_count):
+                        w.resize((self.feature_count, self.label_count))
             self._w = sum(all_w) / len(all_w)
 
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################
 
-    def _train_independent(self, x, y, seed=1):
-        return self._train_common(x, y, seed=seed,
-                                  train_func=self._perform_train_iteration_independent,
-                                  eval_func=self._evaluate_training_set_independent)
+    _train_independent = _train_common
 
     def _perform_train_iteration_independent(self, x, y, permutation):
         for n in range(len(x)):
@@ -83,10 +91,7 @@ class CombinatorialPerceptron(Perceptron):
     #### Sequenced prediction ##################################################
     ############################################################################
 
-    def _train_sequenced(self, x, y, seed=1):
-        return self._train_common(x, y, seed=seed,
-                                  train_func=self._perform_train_iteration_sequenced,
-                                  eval_func=self._evaluate_training_set_sequenced)
+    _train_sequenced = _train_common
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
         for n in range(len(x)):
@@ -99,9 +104,8 @@ class CombinatorialPerceptron(Perceptron):
                 vec = self._feature_extractor.get_vector(
                     pad_x, pos, history=history
                     )
-                if len(vec) > self.feature_count:
-                    # TODO: dynamic resizing
-                    pass
+                if len(vec) > self._w.shape[0]:
+                    self._w.resize((self.feature_count, self.label_count))
                 guess = np.argmax(np.dot(vec, self._w)) # predict_vector
                 truth = truth_seq[pos]
                 if guess != truth:
