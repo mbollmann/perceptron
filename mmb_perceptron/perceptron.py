@@ -11,7 +11,6 @@ class Perceptron(object):
     _feature_extractor = None
     _label_mapper = None  # maps class labels to vector indices
     label_count = 0
-    feature_count = 0
 
     # for sequence-based prediction:
     _left_context_template = "__BEGIN_{0}__"
@@ -35,6 +34,19 @@ class Perceptron(object):
         if self.log_to is not None:
             self.log_to.write(text)
             self.log_to.write("\n")
+
+    @property
+    def feature_count(self):
+        if self._feature_extractor is not None:
+            return self._feature_extractor.feature_count
+        return self._feature_count
+
+    @feature_count.setter
+    def feature_count(self, value):
+        if self._feature_extractor is not None:
+            raise AttributeError(("cannot set feature_count manually "
+                                  "when using a feature_extractor"))
+        self._feature_count = value
 
     @property
     def feature_extractor(self):
@@ -86,11 +98,11 @@ class Perceptron(object):
             return data
         if not isinstance(data[0], np.ndarray):
             self._feature_extractor.init(data)
-            self.feature_count = self._feature_extractor.feature_count
             data = [self._feature_extractor.get_vector(x) for x in data]
         else:
             self.feature_count = data[0].shape[0]
-        assert all(x.shape[0] == self.feature_count for x in data)
+        if not all(x.shape[0] == self.feature_count for x in data):
+            raise ValueError("error converting data")
         return data
 
     ############################################################################
@@ -204,7 +216,6 @@ class Perceptron(object):
         # cannot preprocess the data (since vectors can depend on previous
         # predictions) except for forwarding it to the feature extractor
         self._feature_extractor.init(x)
-        self.feature_count = self._feature_extractor.feature_count
         new_y = self._preprocess_labels_sequenced(y)
         return (x, new_y)
 
