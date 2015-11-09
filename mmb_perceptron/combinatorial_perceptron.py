@@ -34,7 +34,7 @@ class CombinatorialPerceptron(Perceptron):
             return self._label_mapper.get_names(guesses)
         return guesses
 
-    def _train_independent(self, x, y, seed=1):
+    def _train_common(self, x, y, seed=1, train_func=None, eval_func=None):
         (x, y) = self._preprocess_train(x, y)
         self._w = np.zeros((self.feature_count, self.label_count))
         all_w = []
@@ -44,71 +44,10 @@ class CombinatorialPerceptron(Perceptron):
             np.random.seed(seed)
             permutation = np.random.permutation(len(x))
             seed += 1
-
-            # loop over examples
-            for n in range(len(x)):
-                idx = permutation[n]
-                guess = np.argmax(np.dot(x[idx], self._w)) # predict_vector
-                if guess != y[idx]:
-                    # update step
-                    self._w[:, y[idx]] += self.learning_rate * x[idx]
-                    self._w[:, guess]  -= self.learning_rate * x[idx]
-
-            # evaluate
-            correct = sum(self._predict_all_independent(x, as_label=False) == y)
-            accuracy = 1.0 * correct / len(x)
-            self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
-            if self.averaged:
-                all_w.append(self._w.copy())
-
-        if self.averaged:
-            self._w = sum(all_w) / len(all_w)
-
-    def _train_sequenced(self, x, y, seed=1):
-        # TODO: check what we can refactor into a common function
-        (x, y) = self._preprocess_train(x, y)
-        self._w = np.zeros((self.feature_count, self.label_count))
-        all_w = []
-
-        for iteration in range(self.iterations):
-            # random permutation
-            np.random.seed(seed)
-            permutation = np.random.permutation(len(x))
-            seed += 1
-
-            # loop over examples
-            for n in range(len(x)):
-                idx = permutation[n]
-                (pad_x, history, start_pos) = self._initialize_sequence(x[idx])
-                truth_seq = y[idx]
-
-                # loop over sequence elements
-                for pos in range(start_pos, start_pos + len(x[idx])):
-                    vec = self._feature_extractor.get_vector(
-                        pad_x, pos, history=history
-                        )
-                    if len(vec) > self.feature_count:
-                        # TODO: dynamic resizing
-                        pass
-                    guess = np.argmax(np.dot(vec, self._w)) # predict_vector
-                    truth = truth_seq[pos]
-                    if guess != truth:
-                        # update step
-                        self._w[:, truth] += self.learning_rate * vec
-                        self._w[:, guess] -= self.learning_rate * vec
-                    history.append(guess)
-
-            # evaluate
-
-            # TODO: could we skip this step and use the accuracy of the
-            # prediction we already make during training? this is less accurate,
-            # but potentially much faster on a huge dataset
-            correct = 0
-            total = 0
-            for y_pred, y_truth in it.izip(self._predict_all_sequenced(x, as_label=False), y):
-                correct += sum(y_pred == y_truth)
-                total += len(y_pred)
-            accuracy = 1.0 * correct / total
+            # training
+            train_func(x, y, permutation)
+            # evaluation
+            accuracy = eval_func(x, y)
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
             if self.averaged:
                 all_w.append(self._w.copy())
@@ -117,3 +56,67 @@ class CombinatorialPerceptron(Perceptron):
             # TODO: if feature count changed during training, we must also
             # (potentially) resize the all_w elements
             self._w = sum(all_w) / len(all_w)
+
+    ############################################################################
+    #### Standard (independent) prediction #####################################
+    ############################################################################
+
+    def _train_independent(self, x, y, seed=1):
+        return self._train_common(x, y, seed=seed,
+                                  train_func=self._perform_train_iteration_independent,
+                                  eval_func=self._evaluate_training_set_independent)
+
+    def _perform_train_iteration_independent(self, x, y, permutation):
+        for n in range(len(x)):
+            idx = permutation[n]
+            guess = np.argmax(np.dot(x[idx], self._w)) # predict_vector
+            if guess != y[idx]:
+                # update step
+                self._w[:, y[idx]] += self.learning_rate * x[idx]
+                self._w[:, guess]  -= self.learning_rate * x[idx]
+
+    def _evaluate_training_set_independent(self, x, y):
+        correct = sum(self._predict_all_independent(x, as_label=False) == y)
+        return 1.0 * correct / len(x)
+
+    ############################################################################
+    #### Sequenced prediction ##################################################
+    ############################################################################
+
+    def _train_sequenced(self, x, y, seed=1):
+        return self._train_common(x, y, seed=seed,
+                                  train_func=self._perform_train_iteration_sequenced,
+                                  eval_func=self._evaluate_training_set_sequenced)
+
+    def _perform_train_iteration_sequenced(self, x, y, permutation):
+        for n in range(len(x)):
+            idx = permutation[n]
+            (pad_x, history, start_pos) = self._initialize_sequence(x[idx])
+            truth_seq = y[idx]
+
+            # loop over sequence elements
+            for pos in range(start_pos, start_pos + len(x[idx])):
+                vec = self._feature_extractor.get_vector(
+                    pad_x, pos, history=history
+                    )
+                if len(vec) > self.feature_count:
+                    # TODO: dynamic resizing
+                    pass
+                guess = np.argmax(np.dot(vec, self._w)) # predict_vector
+                truth = truth_seq[pos]
+                if guess != truth:
+                    # update step
+                    self._w[:, truth] += self.learning_rate * vec
+                    self._w[:, guess] -= self.learning_rate * vec
+                history.append(guess)
+
+    def _evaluate_training_set_sequenced(self, x, y):
+        # TODO: could we skip this step and use the accuracy of the
+        # prediction we already make during training? this is less accurate,
+        # but potentially much faster on a huge dataset
+        correct = 0
+        total = 0
+        for y_pred, y_truth in it.izip(self._predict_all_sequenced(x, as_label=False), y):
+            correct += sum(y_pred == y_truth)
+            total += len(y_pred)
+        return 1.0 * correct / total
