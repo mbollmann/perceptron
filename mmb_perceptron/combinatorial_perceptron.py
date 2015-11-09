@@ -27,14 +27,14 @@ class CombinatorialPerceptron(Perceptron):
     def predict_vector(self, vec):
         return np.argmax(np.dot(vec, self._w))
 
-    def predict_all(self, x, as_label=True):
+    def _predict_all_independent(self, x, as_label=True):
         assert all([isinstance(e, np.ndarray) for e in x])
         guesses = np.argmax(np.dot(x, self._w), axis=1).transpose()
         if self._label_mapper is not None and as_label:
             return self._label_mapper.get_names(guesses)
         return guesses
 
-    def train(self, x, y, seed=1):
+    def _train_independent(self, x, y, seed=1):
         (x, y) = self._preprocess_train(x, y)
         self._w = np.zeros((self.feature_count, self.label_count))
         all_w = []
@@ -55,18 +55,18 @@ class CombinatorialPerceptron(Perceptron):
                     self._w[:, guess]  -= self.learning_rate * x[idx]
 
             # evaluate
-            correct = sum(self.predict_all(x, as_label=False) == y)
+            correct = sum(self._predict_all_independent(x, as_label=False) == y)
             accuracy = 1.0 * correct / len(x)
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
-            if self.averaging:
+            if self.averaged:
                 all_w.append(self._w.copy())
 
-        if self.averaging:
+        if self.averaged:
             self._w = sum(all_w) / len(all_w)
 
-    def train_sequence(self, x, y, seed=1):
+    def _train_sequenced(self, x, y, seed=1):
         # TODO: check what we can refactor into a common function
-        (x, y) = self._preprocess_train_seq(x, y)
+        (x, y) = self._preprocess_train(x, y)
         self._w = np.zeros((self.feature_count, self.label_count))
         all_w = []
 
@@ -84,7 +84,7 @@ class CombinatorialPerceptron(Perceptron):
 
                 # loop over sequence elements
                 for pos in range(start_pos, start_pos + len(x[idx])):
-                    vec = self._feature_extractor.get_vector_seq(
+                    vec = self._feature_extractor.get_vector(
                         pad_x, pos, history=history
                         )
                     if len(vec) > self.feature_count:
@@ -95,7 +95,7 @@ class CombinatorialPerceptron(Perceptron):
                     if guess != truth:
                         # update step
                         self._w[:, truth] += self.learning_rate * vec
-                        self._w[:, guess]  -= self.learning_rate * vec
+                        self._w[:, guess] -= self.learning_rate * vec
                     history.append(guess)
 
             # evaluate
@@ -105,15 +105,15 @@ class CombinatorialPerceptron(Perceptron):
             # but potentially much faster on a huge dataset
             correct = 0
             total = 0
-            for y_pred, y_truth in it.izip(self.predict_all_sequences(x, as_label=False), y):
+            for y_pred, y_truth in it.izip(self._predict_all_sequenced(x, as_label=False), y):
                 correct += sum(y_pred == y_truth)
                 total += len(y_pred)
             accuracy = 1.0 * correct / total
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
-            if self.averaging:
+            if self.averaged:
                 all_w.append(self._w.copy())
 
-        if self.averaging:
+        if self.averaged:
             # TODO: if feature count changed during training, we must also
             # (potentially) resize the all_w elements
             self._w = sum(all_w) / len(all_w)

@@ -3,32 +3,17 @@
 from ..label_mapper import LabelMapper
 
 class FeatureExtractor(object):
-    """Base class for a feature extractor.
+    """Abstract base class for a feature extractor.
 
     Feature extractors take (potentially arbitrary) data points as input and
     convert them into feature representations, in the form of dictionaries
     mapping feature names to their respective feature values.
-
-    This feature extractor only returns a bias as its single feature.
     """
     _context_size = (0, 0)
 
-    def __init__(self):
+    def __init__(self, sequenced=False):
         self._label_mapper = LabelMapper()
-
-    def init(self, dataset):
-        """Initialize the feature extractor with a dataset.
-
-        Called when training on a new dataset, this function can be used to
-        extract frequency/distributional information from the data to be used in
-        features, or to pre-compute some features.
-        """
-        self._label_mapper.add("bias")
-
-    def init_seq(self, dataset):
-        """Initialize the feature extractor with a sequential dataset.
-        """
-        self._label_mapper.add("bias")
+        self.sequenced = sequenced
 
     @property
     def context_size(self):
@@ -54,23 +39,53 @@ class FeatureExtractor(object):
     def features(self):
         return self._label_mapper
 
-    def get(self, x):
-        """Return the feature representation for a given input."""
-        return {'bias': 1.0}
+    @property
+    def sequenced(self):
+        return self._sequenced
 
-    def get_seq(self, seq, pos, history=None):
+    @sequenced.setter
+    def sequenced(self, status):
+        self._sequenced = status
+        if status:
+            self.init = self._init_independent
+            self.get = self._get_sequenced
+            self.get_vector = self._get_vector_sequenced
+        else:
+            self.init = self._init_sequenced
+            self.get = self._get_independent
+            self.get_vector = self._get_vector_independent
+
+    def _init_independent(self, dataset):
+        """Initialize the feature extractor with a dataset.
+
+        Called when training on a new dataset, this function can be used to
+        extract frequency/distributional information from the data to be used in
+        features, or to pre-compute some features.
+        """
+        raise NotImplementedError("function not implemented")
+
+    def _init_sequenced(self, dataset):
+        """Initialize the feature extractor with a sequential dataset.
+        """
+        raise NotImplementedError("function not implemented")
+
+    def _get_independent(self, x):
+        """Return the feature representation for a given input."""
+        raise NotImplementedError("function not implemented")
+
+    def _get_sequenced(self, seq, pos, history=None):
         """Return the feature representation for a given data point in a
         sequence.
         """
-        return self.get(seq[pos])
+        raise NotImplementedError("function not implemented")
 
-    def get_vector(self, x):
+    def _get_vector_independent(self, x):
         """Return a numerical feature vector for a given input."""
-        return self._label_mapper.map_to_vector(self.get(x))
+        return self._label_mapper.map_to_vector(self._get_independent(x))
 
-    def get_vector_seq(self, seq, pos, history=None):
+    def _get_vector_sequenced(self, seq, pos, history=None):
         """Return a numerical feature vector for a given data point in a
         sequence.
         """
         return self._label_mapper.map_to_vector(
-            self.get_seq(seq, pos, history=history))
+            self._get_sequenced(seq, pos, history=history))

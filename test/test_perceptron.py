@@ -5,19 +5,22 @@ from mmb_perceptron import CombinatorialPerceptron
 from mmb_perceptron.feature_extractor import FeatureExtractor
 
 class BinaryFeatureExtractor(FeatureExtractor):
-    def init(self, dataset):
+    def _init_independent(self, dataset):
         self._label_mapper.extend(('bias', 'lhs_true', 'rhs_true'))
 
-    def init_seq(self, dataset):
-        self._label_mapper.extend(('bias', 'lhs_true', 'rhs_true'))
+    _init_sequenced = _init_independent
 
-    def get(self, x):
+    def _get_independent(self, x):
         features = {'bias': 1.0}
         if x.startswith("True"):
             features['lhs_true'] = 1.0
         if x.endswith("True"):
             features['rhs_true'] = 1.0
         return features
+
+    def _get_sequenced(self, seq, pos, history=None):
+        return self._get_independent(seq[pos])
+
 
 class TestCombinatorialPerceptron(object):
     def test_logical_or(self):
@@ -94,9 +97,10 @@ class TestCombinatorialPerceptron(object):
                 feature_extractor=BinaryFeatureExtractor()
             )
         p.train(x, y)
+        p.sequenced = True
         seq = ["False/True", "True/False", "True/True", "False/False"]
         expected = ["True", "True", "True", "False"]
-        assert p.predict_sequence(seq) == expected
+        assert p.predict(seq) == expected
 
     def test_logical_or_with_sequence_training(self):
         x = [["False/False", "False/True"],
@@ -109,12 +113,13 @@ class TestCombinatorialPerceptron(object):
              ["True", "False"]]
         p = CombinatorialPerceptron(
                 iterations=50,
-                feature_extractor=BinaryFeatureExtractor()
+                feature_extractor=BinaryFeatureExtractor(),
+                sequenced=True
             )
-        p.train_sequence(x, y)
+        p.train(x, y)
         seq = ["False/True", "True/False", "True/True", "False/False"]
         expected = ["True", "True", "True", "False"]
-        assert p.predict_sequence(seq) == expected
+        assert p.predict(seq) == expected
 
 # TODO: test with actual sequence-based feature extractor
 # TODO: test with dynamic feature growth (when it's implemented)
