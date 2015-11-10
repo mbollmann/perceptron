@@ -30,9 +30,7 @@ class CombinatorialPerceptron(Perceptron):
     def _predict_all_independent(self, x, as_label=True):
         assert all([isinstance(e, np.ndarray) for e in x])
         guesses = np.argmax(np.dot(x, self._w), axis=1).transpose()
-        if self._label_mapper is not None and as_label:
-            return self._label_mapper.get_names(guesses)
-        return guesses
+        return self._label_mapper.get_names(guesses) if as_label else guesses
 
     def _train_common(self, x, y, seed=1):
         if self.sequenced:
@@ -112,10 +110,7 @@ class CombinatorialPerceptron(Perceptron):
                     # update step
                     self._w[:, truth] += self.learning_rate * vec
                     self._w[:, guess] -= self.learning_rate * vec
-                if self._label_mapper is not None:
-                    history.append(self._label_mapper.get_name(guess))
-                else:
-                    history.append(guess)
+                history.append(self._label_mapper.get_name(guess))
 
     def _evaluate_training_set_sequenced(self, x, y):
         # TODO: could we skip this step and use the accuracy of the

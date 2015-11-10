@@ -9,7 +9,6 @@ class Perceptron(object):
     """A perceptron classifier.
     """
     _feature_extractor = None
-    _label_mapper = None  # maps class labels to vector indices
     label_count = 0
 
     # for sequence-based prediction:
@@ -27,6 +26,7 @@ class Perceptron(object):
         self.sequenced = sequenced
         self.feature_extractor = feature_extractor
         self.iterations = iterations
+        self._label_mapper = LabelMapper()
         self.learning_rate = learning_rate
         self.log_to = log_to
 
@@ -113,9 +113,7 @@ class Perceptron(object):
         """Predict the class label of a given data point.
         """
         guess = self.predict_vector(self._feature_extractor.get_vector(x))
-        if self._label_mapper is not None and as_label:
-            return self._label_mapper.get_name(guess)
-        return guess
+        return self._label_mapper.get_name(guess) if as_label else guess
 
     def _predict_all_independent(self, x, as_label=True):
         """Predict the class labels of a given dataset (= list of feature vectors).
@@ -138,13 +136,11 @@ class Perceptron(object):
         """Preprocess a full vector/list of class labels.
 
         Stores the number of unique class labels, and returns a numpy array of
-        all labels.  If necessary, a feature mapper is instantiated for the
-        conversion.
+        all labels.
         """
-        if not isinstance(labels, np.ndarray):
-            self._label_mapper = LabelMapper()
-            labels = np.array(self._label_mapper.map_list(labels))
-        self.label_count = np.unique(labels).shape[0]
+        self._label_mapper.reset()
+        labels = np.array(self._label_mapper.map_list(labels))
+        self.label_count = len(self._label_mapper)
         return labels
 
     def _preprocess_train_independent(self, x, y):
@@ -170,14 +166,9 @@ class Perceptron(object):
                 self._feature_extractor.get_vector(
                     padded_x, i, history=history
                 ))
-            if self._label_mapper is not None:
-                history.append(self._label_mapper.get_name(guess))
-            else:
-                history.append(guess)
+            history.append(self._label_mapper.get_name(guess))
         guesses = history[self._left_context_size:]
-        if self._label_mapper is not None and not as_label:
-            return self._label_mapper.map_list(guesses)
-        return guesses
+        return guesses if as_label else self._label_mapper.map_list(guesses)
 
     def _predict_all_sequenced(self, x, as_label=True):
         """Predict the class labels of a given sequential dataset.
@@ -209,7 +200,7 @@ class Perceptron(object):
             self._right_context.append(self._right_context_template.format(i))
 
     def _preprocess_labels_sequenced(self, label_seq):
-        self._label_mapper = LabelMapper()
+        self._label_mapper.reset()
         new_seq = [np.array(self._label_mapper.map_list(l)) for l in label_seq]
         self.label_count = len(self._label_mapper)
         return new_seq

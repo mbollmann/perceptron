@@ -60,3 +60,6 @@ class LabelMapper(collections.Mapping):
         for name, value in feat.iteritems():
             vec[self[name]] = value
         return vec
+
+    def reset(self):
+        self.__init__()
