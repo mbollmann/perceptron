@@ -1,1 +1,2 @@
 from .combinatorial_perceptron import CombinatorialPerceptron
+from .generative_perceptron import GenerativePerceptron
