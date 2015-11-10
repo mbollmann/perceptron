@@ -46,6 +46,9 @@ class FeatureExtractor(object):
     @sequenced.setter
     def sequenced(self, status):
         self._sequenced = status
+        self._rebind_methods(status)
+
+    def _rebind_methods(self, status):
         if status:
             self.init = self._init_sequenced
             self.get = self._get_sequenced
