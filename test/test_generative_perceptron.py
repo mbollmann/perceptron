@@ -2,7 +2,8 @@
 
 import numpy as np
 from mmb_perceptron import GenerativePerceptron
-from helper_classes import BinaryFeatureGenerator, NumberFeatureGenerator
+from helper_classes import \
+     BinaryFeatureGenerator, CharacterLengthGenerator, NumberFeatureGenerator
 
 class TestGenerativePerceptron(object):
     """Tests for the generative perceptron.
@@ -42,7 +43,26 @@ class TestGenerativePerceptron(object):
                 iterations = 100
             )
         p.train(x, y)
-        assert p.predict("False/True") == "True"
-        assert p.predict("True/False") == "True"
-        assert p.predict("True/True") == "True"
-        assert p.predict("False/False") == "False"
+        values = ["False/True", "True/False", "True/True", "False/False"]
+        expected = ["True", "True", "True", "False"]
+        for v, e in zip(values, expected):
+            assert p.predict(v) == e
+        assert p.predict_all(values) == expected
+
+    def test_character_length(self):
+        x = ["A", "AA", "AAA", "AAAA",
+             "B", "BB", "BBB", "BBBB",
+             "C", "CCC", "DDDD"]
+        y = ["1xA", "2xA", "3xA", "4xA",
+             "1xB", "2xB", "3xB", "4xB",
+             "1xC", "3xC", "4xD"]
+        p = GenerativePerceptron(
+                feature_extractor = CharacterLengthGenerator(),
+                iterations = 50
+            )
+        p.train(x, y)
+        values = ["A", "AA", "AAA", "AAAA", "BBB", "CC", "D", "XXX"]
+        expected = ["1xA", "2xA", "3xA", "4xA", "3xB", "2xC", "1xD", "3xX"]
+        for v, e in zip(values, expected):
+            assert p.predict(v) == e
+        assert p.predict_all(values) == expected

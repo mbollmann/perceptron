@@ -11,7 +11,6 @@ class BinaryFeatureExtractor(FeatureExtractor):
 
     def _init_independent(self, dataset):
         self._label_mapper.extend(self._binary_featureset)
-
     _init_sequenced = _init_independent
 
     def _get_independent(self, x):
@@ -46,11 +45,25 @@ class BinaryFeatureGenerator(BinaryFeatureExtractor, GenerativeExtractor):
             return ([f_false, f_true], ['False', 'True'])
 
 
+class CharacterLengthGenerator(GenerativeExtractor):
+    def _generate_independent(self, x, truth=None):
+        features, labels = [], []
+        for d in range(1, 5):
+            label = '{0}x{1}'.format(d, x[0])
+            feature = {'inputlength==d': 1.0 if len(x) == d else 0.0,
+                       'length_{0}'.format(d): 1.0,
+                       'bias_{0}'.format(label): 1.0}
+            if label == truth:
+                features.insert(0, feature)
+                labels.insert(0, label)
+            else:
+                features.append(feature)
+                labels.append(label)
+        return (features, labels)
+
+
 class ContextualFeatureExtractor(FeatureExtractor):
     _context_size = (1, 1)
-
-    def _init_sequenced(self, dataset):
-        pass
 
     def _get_sequenced(self, seq, pos, history=None):
         features = {}
