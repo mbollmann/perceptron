@@ -54,11 +54,15 @@ class GenerativeExtractor(FeatureExtractor):
         numerical feature vectors.
         """
         (features, labels) = self._generate_independent(x, truth=truth)
+        for f in features:
+            self._label_mapper.extend(f)
         vectors = np.array([self._label_mapper.map_to_vector(f) for f in features])
         return (vectors, labels)
 
     def _generate_vector_sequenced(self, seq, pos, history=None, truth=None):
         (features, labels) = self._generate_sequenced(seq, pos,
                                                       history=history, truth=truth)
+        for f in features:
+            self._label_mapper.extend(f)
         vectors = np.array([self._label_mapper.map_to_vector(f) for f in features])
         return (vectors, labels)

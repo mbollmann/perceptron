@@ -65,12 +65,12 @@ class FeatureExtractor(object):
         extract frequency/distributional information from the data to be used in
         features, or to pre-compute some features.
         """
-        raise NotImplementedError("function not implemented")
+        pass
 
     def _init_sequenced(self, dataset):
         """Initialize the feature extractor with a sequential dataset.
         """
-        raise NotImplementedError("function not implemented")
+        pass
 
     def _get_independent(self, x):
         """Return the feature representation for a given input."""
