@@ -34,6 +34,23 @@ class CombinatorialPerceptron(Perceptron):
     def predict_vector(self, vec):
         return np.argmax(np.dot(vec, self._w))
 
+    def predict(self, x):
+        """Predict the class label of a given data point.
+        """
+        if self.sequenced:
+            (padded_x, history, startpos) = self._initialize_sequence(x)
+            for i in range(startpos, startpos + len(x)):
+                guess = self.predict_vector(
+                    self._feature_extractor.get_vector(
+                        padded_x, i, history=history
+                        ))
+                history.append(self._label_mapper.get_name(guess))
+                guesses = history[self._left_context_size:]
+            return guesses
+        else:
+            guess = self.predict_vector(self._feature_extractor.get_vector(x))
+            return self._label_mapper.get_name(guess)
+
     def _preprocess_data(self, data):
         """Preprocess a full list of training data.
         """
@@ -67,12 +84,6 @@ class CombinatorialPerceptron(Perceptron):
     #### Standard (independent) prediction #####################################
     ############################################################################
 
-    def _predict_independent(self, x):
-        """Predict the class label of a given data point.
-        """
-        guess = self.predict_vector(self._feature_extractor.get_vector(x))
-        return self._label_mapper.get_name(guess)
-
     def _perform_train_iteration_independent(self, x, y, permutation):
         for n in range(len(x)):
             idx = permutation[n]
@@ -91,17 +102,6 @@ class CombinatorialPerceptron(Perceptron):
     ############################################################################
     #### Sequenced prediction ##################################################
     ############################################################################
-
-    def _predict_sequenced(self, x):
-        (padded_x, history, startpos) = self._initialize_sequence(x)
-        for i in range(startpos, startpos + len(x)):
-            guess = self.predict_vector(
-                self._feature_extractor.get_vector(
-                    padded_x, i, history=history
-                ))
-            history.append(self._label_mapper.get_name(guess))
-        guesses = history[self._left_context_size:]
-        return guesses
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
         for n in range(len(x)):
@@ -130,7 +130,7 @@ class CombinatorialPerceptron(Perceptron):
         # but potentially much faster on a huge dataset
         correct = 0
         total = 0
-        for y_pred, y_truth in it.izip(self._predict_all_sequenced(x), y):
+        for y_pred, y_truth in it.izip(self.predict_all(x), y):
             correct += sum(self._label_mapper.map_list(y_pred) == y_truth)
             total += len(y_pred)
         return 1.0 * correct / total

@@ -44,16 +44,29 @@ class GenerativePerceptron(Perceptron):
         else:
             return p_best[0]
 
+    def predict(self, x):
+        if self.sequenced:
+            (padded_x, history, startpos) = self._initialize_sequence(x)
+            for i in range(startpos, startpos + len(x)):
+                (features, labels) = self._feature_extractor.generate_vector(
+                    padded_x, i, history=history
+                    )
+                if self.feature_count > self._w.shape[0]:
+                    self._w.resize(self.feature_count)
+                guess = np.argmax(np.dot(features, self._w))
+                history.append(labels[guess])
+            guesses = history[self._left_context_size:]
+            return guesses
+        else:
+            (features, labels) = self._feature_extractor.generate_vector(x)
+            if self.feature_count > self._w.shape[0]:
+                self._w.resize(self.feature_count)
+            guess = np.argmax(np.dot(features, self._w))
+            return labels[guess]
+
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################
-
-    def _predict_independent(self, x):
-        (features, labels) = self._feature_extractor.generate_vector(x)
-        if self.feature_count > self._w.shape[0]:
-            self._w.resize(self.feature_count)
-        guess = np.argmax(np.dot(features, self._w))
-        return labels[guess]
 
     def _perform_train_iteration_independent(self, x, y, permutation):
         for n in range(len(x)):
@@ -68,25 +81,12 @@ class GenerativePerceptron(Perceptron):
 
     def _evaluate_training_set_independent(self, x, y):
         correct = sum(a == b for (a, b) in \
-                      it.izip(self._predict_all_independent(x), y))
+                      it.izip(self.predict_all(x), y))
         return 1.0 * correct / len(x)
 
     ############################################################################
     #### Sequenced prediction ##################################################
     ############################################################################
-
-    def _predict_sequenced(self, x):
-        (padded_x, history, startpos) = self._initialize_sequence(x)
-        for i in range(startpos, startpos + len(x)):
-            (features, labels) = self._feature_extractor.generate_vector(
-                padded_x, i, history=history
-                )
-            if self.feature_count > self._w.shape[0]:
-                self._w.resize(self.feature_count)
-            guess = np.argmax(np.dot(features, self._w))
-            history.append(labels[guess])
-        guesses = history[self._left_context_size:]
-        return guesses
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
         for n in range(len(x)):
@@ -113,7 +113,7 @@ class GenerativePerceptron(Perceptron):
         # but potentially much faster on a huge dataset
         correct = 0
         total = 0
-        for y_pred, y_truth in it.izip(self._predict_all_sequenced(x), y):
+        for y_pred, y_truth in it.izip(self.predict_all(x), y):
             correct += sum(a == b for (a, b) in it.izip(y_pred, y_truth))
             total += len(y_pred)
         return 1.0 * correct / total

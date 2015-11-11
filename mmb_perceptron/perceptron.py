@@ -59,7 +59,8 @@ class Perceptron(object):
     def feature_extractor(self, obj):
         self._feature_extractor = obj
         if obj is not None:
-            self.set_context_attributes(obj)
+            if self.sequenced:
+                self._set_context_attributes(obj)
             self._feature_extractor.sequenced = self.sequenced
 
     @property
@@ -71,14 +72,6 @@ class Perceptron(object):
         self._sequenced = status
         if self._feature_extractor is not None:
             self._feature_extractor.sequenced = status
-        if status:
-            self.predict = self._predict_sequenced
-            self.predict_all = self._predict_all_sequenced
-            self.set_context_attributes = self._set_context_attributes_sequenced
-        else:
-            self.predict = self._predict_independent
-            self.predict_all = self._predict_all_independent
-            self.set_context_attributes = self._set_context_attributes_independent
 
     def train(self, x, y, seed=1):
         """Train the perceptron on independent data points.
@@ -120,6 +113,13 @@ class Perceptron(object):
                     self._resize_weights(w)
             self._w = sum(all_w) / len(all_w)
 
+    def predict_all(self, x):
+        """Predict the class labels of a given dataset (= list of data points/sequences).
+
+        The prediction function itself must be implemented by derived classes.
+        """
+        return [self.predict(y) for y in x]
+
     ############################################################################
     #### Serialization via pickle ##############################################
     ############################################################################
@@ -148,6 +148,11 @@ class Perceptron(object):
     #### Functions to be implemented by derived classes ########################
     ############################################################################
 
+    def predict(self, x):
+        """Predict the class label of a given data point or sequence.
+        """
+        raise NotImplementedError("predictor functionality not implemented")
+
     def reset_weights(self):
         """Reset learned weights.
         """
@@ -171,35 +176,10 @@ class Perceptron(object):
         raise NotImplementedError("training functionality not implemented")
 
     ############################################################################
-    #### Standard (independent) prediction #####################################
+    #### Helper functions for sequenced prediction #############################
     ############################################################################
 
-    def _predict_independent(self, x):
-        """Predict the class label of a given data point.
-        """
-        raise NotImplementedError("predictor functionality not implemented")
-
-    def _predict_all_independent(self, x):
-        """Predict the class labels of a given dataset (= list of feature vectors).
-        """
-        return [self._predict_independent(y) for y in x]
-
-    def _set_context_attributes_independent(self, _):
-        pass
-
-    ############################################################################
-    #### Sequenced prediction ##################################################
-    ############################################################################
-
-    def _predict_sequenced(self, x):
-        raise NotImplementedError("predictor functionality not implemented")
-
-    def _predict_all_sequenced(self, x):
-        """Predict the class labels of a given sequential dataset.
-        """
-        return [self._predict_sequenced(y) for y in x]
-
-    def _set_context_attributes_sequenced(self, obj):
+    def _set_context_attributes(self, obj):
         """Set context attributes from an object providing context size,
         typically the feature extractor.
 
