@@ -2,34 +2,10 @@
 
 import numpy as np
 from mmb_perceptron import CombinatorialPerceptron
-from mmb_perceptron.feature_extractor import FeatureExtractor
-
-class BinaryFeatureExtractor(FeatureExtractor):
-    _binary_featureset = ('bias', 'lhs_true', 'rhs_true')
-
-    def _init_independent(self, dataset):
-        self._label_mapper.extend(self._binary_featureset)
-
-    _init_sequenced = _init_independent
-
-    def _get_independent(self, x):
-        features = {'bias': 1.0}
-        if x.startswith("True"):
-            features['lhs_true'] = 1.0
-        if x.endswith("True"):
-            features['rhs_true'] = 1.0
-        return features
-
-    def _get_sequenced(self, seq, pos, history=None):
-        return self._get_independent(seq[pos])
-
+from helper_classes import BinaryFeatureExtractor, ContextualFeatureExtractor
 
 class TestCombinatorialPerceptron(object):
     """Tests for the combinatorial perceptron.
-
-    Contains tests that primarily test the perceptron with "sequenced=False".
-    Includes some tests with "sequenced=True" as well, though the feature
-    extractor and training data are always non-sequential in nature.
     """
 
     def test_logical_or(self):
@@ -95,6 +71,9 @@ class TestCombinatorialPerceptron(object):
         assert p.predict("True/False") == "True"
         assert p.predict("True/True") == "True"
         assert p.predict("False/False") == "False"
+        values = ["True/False", "True/True", "False/False", "False/True"]
+        expected = ["True", "True", "False", "True"]
+        assert p.predict_all(values) == expected
 
     def test_logical_or_with_sequence_prediction(self):
         # rationale: sequence prediction should be identical to individual
@@ -107,9 +86,15 @@ class TestCombinatorialPerceptron(object):
             )
         p.train(x, y)
         p.sequenced = True
-        seq = ["False/True", "True/False", "True/True", "False/False"]
-        expected = ["True", "True", "True", "False"]
-        assert p.predict(seq) == expected
+        sequences = [["False/True", "True/False", "True/True", "False/False"],
+                     ["False/False", "False/False"],
+                     ["True/False", "True/True"]]
+        expected = [["True", "True", "True", "False"],
+                    ["False", "False"],
+                    ["True", "True"]]
+        for s, e in zip(sequences, expected):
+            assert p.predict(s) == e
+        assert p.predict_all(sequences) == expected
 
     def test_logical_or_with_sequence_training(self):
         x = [["False/False", "False/True"],
@@ -126,9 +111,15 @@ class TestCombinatorialPerceptron(object):
                 sequenced=True
             )
         p.train(x, y)
-        seq = ["False/True", "True/False", "True/True", "False/False"]
-        expected = ["True", "True", "True", "False"]
-        assert p.predict(seq) == expected
+        sequences = [["False/True", "True/False", "True/True", "False/False"],
+                     ["False/False", "False/False"],
+                     ["True/False", "True/True"]]
+        expected = [["True", "True", "True", "False"],
+                    ["False", "False"],
+                    ["True", "True"]]
+        for s, e in zip(sequences, expected):
+            assert p.predict(s) == e
+        assert p.predict_all(sequences) == expected
 
     def test_logical_or_with_dynamic_feature_growth(self):
         x = [["False/False", "False/True"],
@@ -152,3 +143,34 @@ class TestCombinatorialPerceptron(object):
         seq = ["False/True", "True/False", "True/True", "False/False"]
         expected = ["True", "True", "True", "False"]
         assert p.predict(seq) == expected
+
+    def test_sequenced_number_tagging(self):
+        """Dumb sequence tagging example: Perceptron learns to tag numbers with
+        their respective string, except for 2 following 1 which is tagged
+        'twelve'.
+        """
+        x = [["0", "2", "1"],
+             ["0", "1", "2"],
+             ["1", "2", "2"],
+             ["2", "1", "2"],
+             ["1", "0", "2"]]
+        y = [["ZERO", "TWO", "ONE"],
+             ["ZERO", "ONE", "TWELVE"],
+             ["ONE", "TWELVE", "TWO"],
+             ["TWO", "ONE", "TWELVE"],
+             ["ONE", "ZERO", "TWO"]]
+        p = CombinatorialPerceptron(
+            iterations=100,
+            sequenced=True,
+            feature_extractor = ContextualFeatureExtractor()
+            )
+        p.train(x, y)
+        sequences = [["0", "1", "2"],
+                     ["1", "0", "2", "1", "2", "2", "2"],
+                     ["2", "1", "1", "2", "0"]]
+        expected = [["ZERO", "ONE", "TWELVE"],
+                    ["ONE", "ZERO", "TWO", "ONE", "TWELVE", "TWO", "TWO"],
+                    ["TWO", "ONE", "ONE", "TWELVE", "ZERO"]]
+        for s, e in zip(sequences, expected):
+            assert p.predict(s) == e
+        assert p.predict_all(sequences) == expected
