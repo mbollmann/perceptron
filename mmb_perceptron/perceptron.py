@@ -72,38 +72,17 @@ class Perceptron(object):
             self.predict = self._predict_sequenced
             self.predict_all = self._predict_all_sequenced
             self.train = self._train_sequenced
-            self._preprocess_train = self._preprocess_train_sequenced
             self.set_context_attributes = self._set_context_attributes_sequenced
         else:
             self.predict = self._predict_independent
             self.predict_all = self._predict_all_independent
             self.train = self._train_independent
-            self._preprocess_train = self._preprocess_train_independent
             self.set_context_attributes = self._set_context_attributes_independent
 
     def predict_vector(self, vec):
         """Predict the class label of a given feature vector.
         """
         raise NotImplementedError("predict_vector function not implemented")
-
-    ############################################################################
-    #### PRIVATE METHODS #######################################################
-    ############################################################################
-
-    def _preprocess_data(self, data):
-        """Preprocess a full list of training data.
-        """
-        if len(data) < 1:
-            self.feature_count = 0
-            return data
-        if not isinstance(data[0], np.ndarray):
-            self._feature_extractor.init(data)
-            data = [self._feature_extractor.get_vector(x) for x in data]
-        else:
-            self.feature_count = data[0].shape[0]
-        if not all(x.shape[0] == self.feature_count for x in data):
-            raise ValueError("error converting data")
-        return data
 
     ############################################################################
     #### Standard (independent) prediction #####################################
@@ -131,23 +110,6 @@ class Perceptron(object):
 
     def _set_context_attributes_independent(self, _):
         pass
-
-    def _preprocess_labels_independent(self, labels):
-        """Preprocess a full vector/list of class labels.
-
-        Stores the number of unique class labels, and returns a numpy array of
-        all labels.
-        """
-        self._label_mapper.reset()
-        labels = np.array(self._label_mapper.map_list(labels))
-        self.label_count = len(self._label_mapper)
-        return labels
-
-    def _preprocess_train_independent(self, x, y):
-        assert len(x) == len(y)
-        new_x = self._preprocess_data(x)
-        new_y = self._preprocess_labels_independent(y)
-        return (new_x, new_y)
 
     ############################################################################
     #### Sequenced prediction ##################################################
@@ -198,20 +160,6 @@ class Perceptron(object):
             self._initial_history.append(self._initial_history_template.format(i))
         for j in range(right_context_size):
             self._right_context.append(self._right_context_template.format(i))
-
-    def _preprocess_labels_sequenced(self, label_seq):
-        self._label_mapper.reset()
-        new_seq = [np.array(self._label_mapper.map_list(l)) for l in label_seq]
-        self.label_count = len(self._label_mapper)
-        return new_seq
-
-    def _preprocess_train_sequenced(self, x, y):
-        assert len(x) == len(y)
-        # cannot preprocess the data (since vectors can depend on previous
-        # predictions) except for forwarding it to the feature extractor
-        self._feature_extractor.init(x)
-        new_y = self._preprocess_labels_sequenced(y)
-        return (x, new_y)
 
     def _initialize_sequence(self, seq):
         """Prepare a sequence of data points for sequence-based prediction.

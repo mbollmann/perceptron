@@ -32,15 +32,32 @@ class CombinatorialPerceptron(Perceptron):
         guesses = np.argmax(np.dot(x, self._w), axis=1).transpose()
         return self._label_mapper.get_names(guesses) if as_label else guesses
 
+    def _preprocess_data(self, data):
+        """Preprocess a full list of training data.
+        """
+        if len(data) < 1:
+            self.feature_count = 0
+            return data
+        if not isinstance(data[0], np.ndarray):
+            self._feature_extractor.init(data)
+            data = [self._feature_extractor.get_vector(x) for x in data]
+        else:
+            self.feature_count = data[0].shape[0]
+        if not all(x.shape[0] == self.feature_count for x in data):
+            raise ValueError("error converting data")
+        return data
+
     def _train_common(self, x, y, seed=1):
         if self.sequenced:
             train_func = self._perform_train_iteration_sequenced
             eval_func = self._evaluate_training_set_sequenced
+            preprocess_train = self._preprocess_train_sequenced
         else:
             train_func = self._perform_train_iteration_independent
             eval_func = self._evaluate_training_set_independent
+            preprocess_train = self._preprocess_train_independent
 
-        (x, y) = self._preprocess_train(x, y)
+        (x, y) = preprocess_train(x, y)
         self._w = np.zeros((self.feature_count, self.label_count))
         all_w = []
 
@@ -72,6 +89,23 @@ class CombinatorialPerceptron(Perceptron):
 
     _train_independent = _train_common
 
+    def _preprocess_labels_independent(self, labels):
+        """Preprocess a full vector/list of class labels.
+
+        Stores the number of unique class labels, and returns a numpy array of
+        all labels.
+        """
+        self._label_mapper.reset()
+        labels = np.array(self._label_mapper.map_list(labels))
+        self.label_count = len(self._label_mapper)
+        return labels
+
+    def _preprocess_train_independent(self, x, y):
+        assert len(x) == len(y)
+        new_x = self._preprocess_data(x)
+        new_y = self._preprocess_labels_independent(y)
+        return (new_x, new_y)
+
     def _perform_train_iteration_independent(self, x, y, permutation):
         for n in range(len(x)):
             idx = permutation[n]
@@ -90,6 +124,20 @@ class CombinatorialPerceptron(Perceptron):
     ############################################################################
 
     _train_sequenced = _train_common
+
+    def _preprocess_labels_sequenced(self, label_seq):
+        self._label_mapper.reset()
+        new_seq = [np.array(self._label_mapper.map_list(l)) for l in label_seq]
+        self.label_count = len(self._label_mapper)
+        return new_seq
+
+    def _preprocess_train_sequenced(self, x, y):
+        assert len(x) == len(y)
+        # cannot preprocess the data (since vectors can depend on previous
+        # predictions) except for forwarding it to the feature extractor
+        self._feature_extractor.init(x)
+        new_y = self._preprocess_labels_sequenced(y)
+        return (x, new_y)
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
         for n in range(len(x)):
