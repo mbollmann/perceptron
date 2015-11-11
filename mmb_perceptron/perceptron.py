@@ -13,7 +13,6 @@ class Perceptron(object):
     """
     _feature_extractor = None
     _w = None
-    label_count = 0
 
     # for sequence-based prediction:
     _left_context_template = "__BEGIN_{0}__"
@@ -120,6 +119,30 @@ class Perceptron(object):
                 for w in all_w:
                     self._resize_weights(w)
             self._w = sum(all_w) / len(all_w)
+
+    ############################################################################
+    #### Serialization via pickle ##############################################
+    ############################################################################
+
+    def __getstate__(self):
+        return {
+            'averaged': self.averaged,
+            'sequenced': self.sequenced,
+            'feature_extractor': self._feature_extractor,
+            'iterations': self.iterations,
+            'label_mapper': self._label_mapper,
+            'learning_rate': self.learning_rate,
+            'weights': self._w
+            }
+
+    def __setstate__(self, state):
+        self.averaged = state['averaged']
+        self.sequenced = state['sequenced']
+        self.feature_extractor = state['feature_extractor']
+        self.iterations = state['iterations']
+        self._label_mapper = state['label_mapper']
+        self.learning_rate = state['learning_rate']
+        self._w = state['weights']
 
     ############################################################################
     #### Functions to be implemented by derived classes ########################

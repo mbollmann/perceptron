@@ -92,3 +92,15 @@ class FeatureExtractor(object):
         """
         return self._label_mapper.map_to_vector(
             self._get_sequenced(seq, pos, history=history))
+
+    def __getstate__(self):
+        return {
+            'label_mapper': self._label_mapper,
+            'context_size': self._context_size,
+            'sequenced': self.sequenced
+            }
+
+    def __setstate__(self, state):
+        self._label_mapper = state['label_mapper']
+        self._context_size = state['context_size']
+        self.sequenced = state['sequenced']

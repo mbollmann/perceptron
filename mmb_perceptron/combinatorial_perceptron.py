@@ -25,11 +25,11 @@ class CombinatorialPerceptron(Perceptron):
     """
 
     def reset_weights(self):
-        self._w = np.zeros((self.feature_count, self.label_count))
+        self._w = np.zeros((self.feature_count, len(self._label_mapper)))
 
     def _resize_weights(self, w):
-        if w.shape != (self.feature_count, self.label_count):
-            w.resize((self.feature_count, self.label_count))
+        if w.shape != (self.feature_count, len(self._label_mapper)):
+            w.resize((self.feature_count, len(self._label_mapper)))
 
     def predict_vector(self, vec):
         return np.argmax(np.dot(vec, self._w))
@@ -61,7 +61,6 @@ class CombinatorialPerceptron(Perceptron):
         else:
             new_x = self._preprocess_data(x)
             new_y = np.array(self._label_mapper.map_list(y))
-        self.label_count = len(self._label_mapper)
         return (new_x, new_y)
 
     ############################################################################
@@ -116,7 +115,7 @@ class CombinatorialPerceptron(Perceptron):
                     pad_x, pos, history=history
                     )
                 if len(vec) > self._w.shape[0]:
-                    self._w.resize((self.feature_count, self.label_count))
+                    self._w.resize((self.feature_count, len(self._label_mapper)))
                 guess = np.argmax(np.dot(vec, self._w)) # predict_vector
                 truth = truth_seq[pos - self._left_context_size]
                 if guess != truth:

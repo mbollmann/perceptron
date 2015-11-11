@@ -18,10 +18,11 @@ class TestGenerativePerceptron(object):
             iterations = 100
             )
         p.train(x, y)
-        assert p.predict((0,1)) == 1
-        assert p.predict((1,0)) == 1
-        assert p.predict((1,1)) == 1
-        assert p.predict((0,0)) == 0
+        values = [(0,1), (1,0), (1,1), (0,0)]
+        expected = [1, 1, 1, 0]
+        for v, e in zip(values, expected):
+            assert p.predict(v) == e
+        assert p.predict_all(values) == expected
 
     def test_logical_and(self):
         x = [(0,0), (0,1), (1,0), (1,1)]
@@ -31,10 +32,11 @@ class TestGenerativePerceptron(object):
             iterations = 100
             )
         p.train(x, y)
-        assert p.predict((0,1)) == 0
-        assert p.predict((1,0)) == 0
-        assert p.predict((1,1)) == 1
-        assert p.predict((0,0)) == 0
+        values = [(0,1), (1,0), (1,1), (0,0)]
+        expected = [0, 0, 1, 0]
+        for v, e in zip(values, expected):
+            assert p.predict(v) == e
+        assert p.predict_all(values) == expected
 
     def test_logical_or_with_features(self):
         x = ["False/False", "False/True", "True/False", "True/True"]
@@ -102,3 +104,23 @@ class TestGenerativePerceptron(object):
         for s, e in zip(sequences, expected):
             assert p.predict(s) == e
         assert p.predict_all(sequences) == expected
+
+    def test_can_be_pickled(self):
+        import pickle
+        x = ["False/False", "False/True", "True/False", "True/True"]
+        y = ["False", "True", "True", "True"]
+        p = GenerativePerceptron(
+                feature_extractor = BinaryFeatureGenerator(),
+                iterations = 100
+            )
+        p.train(x, y)
+        # serialization/unserialization
+        serialized = pickle.dumps(p)
+        del p
+        p = pickle.loads(serialized)
+        # test if everything still works
+        values = ["False/True", "True/False", "True/True", "False/False"]
+        expected = ["True", "True", "True", "False"]
+        for v, e in zip(values, expected):
+            assert p.predict(v) == e
+        assert p.predict_all(values) == expected
