@@ -12,6 +12,7 @@ class Perceptron(object):
     be used by itself.  Always use derived classes instead.
     """
     _feature_extractor = None
+    _w = None
     label_count = 0
 
     # for sequence-based prediction:
@@ -128,6 +129,11 @@ class Perceptron(object):
         """Reset learned weights.
         """
         raise NotImplementedError("reset_weights function not implemented")
+
+    def _resize_weights(self, w):
+        """Resize weights dynamically, if needed.
+        """
+        raise NotImplementedError("_resize_weights function not implemented")
 
     def _perform_train_iteration_independent(self, x, y, permutation):
         raise NotImplementedError("training functionality not implemented")

@@ -35,6 +35,8 @@ class GenerativePerceptron(Perceptron):
 
     def _predict_independent(self, x, as_label=True):
         (features, labels) = self._feature_extractor.generate_vector(x)
+        if self.feature_count > self._w.shape[0]:
+            self._w.resize(self.feature_count)
         guess = np.argmax(np.dot(features, self._w))
         return labels[guess] if as_label else self._label_mapper[labels[guess]]
 
