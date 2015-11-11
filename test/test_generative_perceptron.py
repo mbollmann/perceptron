@@ -6,34 +6,33 @@ from mmb_perceptron.feature_extractor.generator import GenerativeExtractor
 from test_combinatorial_perceptron import BinaryFeatureExtractor
 
 class NumberFeatureGenerator(GenerativeExtractor):
-    def _generate_independent(self, x):
+    def _generate_vector_independent(self, x, truth=None):
         (a, b) = x
-        return {
-            0: np.array([a,b,0,0,1]),
-            1: np.array([0,0,a,b,1])
-            }
+        f_false = np.array([a,b,0,0,1])
+        f_true = np.array([0,0,a,b,1])
+        if truth == 1:
+            return (np.array(f_true, f_false), [1, 0])
+        else:
+            return (np.array(f_false, f_true), [0, 1])
 
-    def _generate_with_oracle_independent(self, x, truth=None):
-        return (self._generate_independent(x),
-                truth if truth is not None else 1)
 
 class BinaryFeatureGenerator(BinaryFeatureExtractor):
-    def _generate_independent(self, x):
+    def _generate_independent(self, x, truth=None):
         (a, b) = x
-        return {
-            0: {'bias': 1.0,
-                'lhs_true && false': 1.0 if a == 1 else 0.0,
-                'rhs_true && false': 1.0 if b == 1 else 0.0
-                },
-            1: {'bias': 1.0,
-                'lhs_true && true': 1.0 if a == 1 else 0.0,
-                'rhs_true && true': 1.0 if b == 1 else 0.0
-                }
+        f_false = {
+            'bias': 1.0,
+            'lhs_true && false': 1.0 if a == 1 else 0.0,
+            'rhs_true && false': 1.0 if b == 1 else 0.0
             }
-
-    def _generate_with_oracle_independent(self, x, truth=None):
-        return (self._generate_independent(x),
-                truth if truth is not None else 1)
+        f_true = {
+            'bias': 1.0,
+            'lhs_true && true': 1.0 if a == 1 else 0.0,
+            'rhs_true && true': 1.0 if b == 1 else 0.0
+            }
+        if truth == 1:
+            return ([f_true, f_false], [1, 0])
+        else:
+            return ([f_false, f_true], [0, 1])
 
 
 class TestGenerativePerceptron(object):

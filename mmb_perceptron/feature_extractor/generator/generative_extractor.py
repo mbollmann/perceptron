@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 from .. import FeatureExtractor
 
 class GenerativeExtractor(FeatureExtractor):
@@ -19,63 +20,45 @@ class GenerativeExtractor(FeatureExtractor):
         if status:
             self.generate = self._generate_sequenced
             self.generate_vector = self._generate_vector_sequenced
-            self.generate_with_oracle = self._generate_with_oracle_sequenced
-            self.generate_vector_with_oracle = \
-                self._generate_vector_with_oracle_sequenced
         else:
             self.generate = self._generate_independent
             self.generate_vector = self._generate_vector_independent
-            self.generate_with_oracle = self._generate_with_oracle_independent
-            self.generate_vector_with_oracle = \
-                self._generate_vector_with_oracle_independent
 
-    def _generate_independent(self, x):
+    def _generate_independent(self, x, truth=None):
         """Return candidates and their feature representations.
 
-        Should return a dict that maps class labels (= candidates) to feature
-        representations.
+        Should return a tuple (F, C), where F is a list of feature
+        representations, and C is a list of class labels so that C[i] is the
+        class label belonging to the feature representation F[i].
+
+        During training, the **first element in these lists** is considered by
+        the perceptron to be the **correct class label** for this data point.
+
+        If the parameter 'truth' is supplied, it indicates the gold-standard
+        best candidate according to the training data; however, it is up to the
+        generator function whether to include this value as the first element of
+        the feature representations (thereby making the **gold standard** the
+        correct class label for the perceptron learner) or generate the
+        candidates independently and select an **oracle-best** class label from
+        those.
         """
         raise NotImplementedError("function not implemented")
 
-    def _generate_sequenced(self, seq, pos, history=None):
+    def _generate_sequenced(self, seq, pos, history=None, truth=None):
         raise NotImplementedError("function not implemented")
 
-    def _generate_with_oracle_independent(self, x, truth=None):
-        """Return candidates, their feature representations, and the oracle-best candidate.
+    def _generate_vector_independent(self, x, truth=None):
+        """Return candidates and their feature representations.
 
-        Should return a tuple (F, C), where F is the dictionary of feature
-        representations, and C is an oracle prediction of the best candidate.  C
-        is required to be contained in F.
-
-        'truth' can be given to indicate the gold-standard best candidate, but
-        it is up to the generator function whether to return this value as its
-        prediction C (and include it in the feature representations), or whether
-        to generate the candidates independently and use an oracle to select
-        the most likely truth candidate from those.
+        Identical to _generate_independent(), except that F is now a matrix of
+        numerical feature vectors.
         """
-        raise NotImplementedError("function not implemented")
+        (features, labels) = self._generate_independent(x, truth=truth)
+        vectors = np.array([self._label_mapper.map_to_vector(f) for f in features])
+        return (vectors, labels)
 
-    def _generate_with_oracle_sequenced(self, seq, pos, history=None, truth=None):
-        raise NotImplementedError("function not implemented")
-
-    def _generate_vector_independent(self, x):
-        predictions = self._generate_independent(x)
-        return {l: self._label_mapper.map_to_vector(v) \
-                for l, v in predictions.iteritems()}
-
-    def _generate_vector_sequenced(self, seq, pos, history=None):
-        predictions = self._generate_sequenced(seq, pos, history=history)
-        return {l: self._label_mapper.map_to_vector(v) \
-                for l, v in predictions.iteritems()}
-
-    def _generate_vector_with_oracle_independent(self, x, truth=None):
-        (predictions, oracle) = self._generate_with_oracle_independent(x, truth=truth)
-        return ({l: self._label_mapper.map_to_vector(v) \
-                 for l, v in predictions.iteritems()}, oracle)
-
-    def _generate_vector_with_oracle_sequenced(self, seq, pos, history=None, truth=None):
-        (predictions, oracle) = self._generate_with_oracle_sequenced(seq, pos,
-                                                                     history=history,
-                                                                     truth=truth)
-        return ({l: self._label_mapper.map_to_vector(v) \
-                 for l, v in predictions.iteritems()}, oracle)
+    def _generate_vector_sequenced(self, seq, pos, history=None, truth=None):
+        (features, labels) = self._generate_sequenced(seq, pos,
+                                                      history=history, truth=truth)
+        vectors = np.array([self._label_mapper.map_to_vector(f) for f in features])
+        return (vectors, labels)
