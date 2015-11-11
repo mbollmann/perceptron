@@ -53,12 +53,9 @@ class CharacterLengthGenerator(GenerativeExtractor):
             feature = {'inputlength==d': 1.0 if len(x) == d else 0.0,
                        'length_{0}'.format(d): 1.0,
                        'bias_{0}'.format(label): 1.0}
-            if label == truth:
-                features.insert(0, feature)
-                labels.insert(0, label)
-            else:
-                features.append(feature)
-                labels.append(label)
+            insert_pos = 0 if label == truth else len(features)
+            features.insert(insert_pos, feature)
+            labels.insert(insert_pos, label)
         return (features, labels)
 
 
@@ -66,12 +63,28 @@ class ContextualFeatureExtractor(FeatureExtractor):
     _context_size = (1, 1)
 
     def _get_sequenced(self, seq, pos, history=None):
-        features = {}
+        features = {'bias': 1.0}
         features['this==' + seq[pos]] = 1.0
         features['prev==' + seq[pos - 1]] = 1.0
         features['next==' + seq[pos + 1]] = 1.0
         features['prev_guess==' + history[pos - 1]] = 1.0
         return features
+
+
+class ContextualFeatureGenerator(ContextualFeatureExtractor, GenerativeExtractor):
+    _all_labels = ["ONE", "TWO", "TWELVE", "ZERO"]
+
+    def _generate_sequenced(self, seq, pos, history=None, truth=None):
+        features, labels = [], []
+        old_feats = self._get_sequenced(seq, pos, history=history)
+        # Combinatorial feature explosion -- i.e., we mimic what the
+        # CombinatorialPerceptron does internally:
+        for label in self._all_labels:
+            feats = {'{0} && label={1}'.format(f, label): 1.0 for f in old_feats}
+            insert_pos = 0 if label == truth else len(features)
+            features.insert(insert_pos, feats)
+            labels.insert(insert_pos, label)
+        return (features, labels)
 
 
 class NumberFeatureGenerator(GenerativeExtractor):

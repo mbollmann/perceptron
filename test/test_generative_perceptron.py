@@ -3,7 +3,8 @@
 import numpy as np
 from mmb_perceptron import GenerativePerceptron
 from helper_classes import \
-     BinaryFeatureGenerator, CharacterLengthGenerator, NumberFeatureGenerator
+     BinaryFeatureGenerator, CharacterLengthGenerator, \
+     ContextualFeatureGenerator, NumberFeatureGenerator
 
 class TestGenerativePerceptron(object):
     """Tests for the generative perceptron.
@@ -49,7 +50,7 @@ class TestGenerativePerceptron(object):
             assert p.predict(v) == e
         assert p.predict_all(values) == expected
 
-    def test_character_length(self):
+    def test_character_length_tagging(self):
         x = ["A", "AA", "AAA", "AAAA",
              "B", "BB", "BBB", "BBBB",
              "C", "CCC", "DDDD"]
@@ -66,3 +67,38 @@ class TestGenerativePerceptron(object):
         for v, e in zip(values, expected):
             assert p.predict(v) == e
         assert p.predict_all(values) == expected
+
+    def test_sequenced_number_tagging(self):
+        """Tests that GenerativePerceptron with a feature extractor doing
+        combinatorial feature explosion is really equivalent to
+        CombinatorialPerceptron.
+        """
+        x = [["0", "2", "1"],
+             ["0", "1", "2"],
+             ["1", "2", "2"],
+             ["2", "1", "2"],
+             ["1", "1", "1"],
+             ["2", "2", "2"],
+             ["1", "0", "2"]]
+        y = [["ZERO", "TWO", "ONE"],
+             ["ZERO", "ONE", "TWELVE"],
+             ["ONE", "TWELVE", "TWO"],
+             ["TWO", "ONE", "TWELVE"],
+             ["ONE", "ONE", "ONE"],
+             ["TWO", "TWO", "TWO"],
+             ["ONE", "ZERO", "TWO"]]
+        p = GenerativePerceptron(
+            iterations = 100,
+            sequenced = True,
+            feature_extractor = ContextualFeatureGenerator()
+            )
+        p.train(x, y)
+        sequences = [["0", "1", "2"],
+                     ["1", "0", "2", "1", "2", "2", "2"],
+                     ["2", "1", "1", "2", "0"]]
+        expected = [["ZERO", "ONE", "TWELVE"],
+                    ["ONE", "ZERO", "TWO", "ONE", "TWELVE", "TWO", "TWO"],
+                    ["TWO", "ONE", "ONE", "TWELVE", "ZERO"]]
+        for s, e in zip(sequences, expected):
+            assert p.predict(s) == e
+        assert p.predict_all(sequences) == expected

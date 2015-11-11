@@ -153,11 +153,15 @@ class TestCombinatorialPerceptron(object):
              ["0", "1", "2"],
              ["1", "2", "2"],
              ["2", "1", "2"],
+             ["1", "1", "1"],
+             ["2", "2", "2"],
              ["1", "0", "2"]]
         y = [["ZERO", "TWO", "ONE"],
              ["ZERO", "ONE", "TWELVE"],
              ["ONE", "TWELVE", "TWO"],
              ["TWO", "ONE", "TWELVE"],
+             ["ONE", "ONE", "ONE"],
+             ["TWO", "TWO", "TWO"],
              ["ONE", "ZERO", "TWO"]]
         p = CombinatorialPerceptron(
             iterations=100,
