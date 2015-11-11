@@ -29,33 +29,38 @@ class GenerativePerceptron(Perceptron):
         self._label_mapper.reset()
         return (x, y)
 
+    def predict_features(self, features):
+        """Predicts the best feature vector from a list of feature vectors.
+        """
+        if self.feature_count > self._w.shape[0]:
+            self._w.resize(self.feature_count)
+        p = np.dot(features, self._w)
+        p_best = np.argwhere(p == np.amax(p)).flatten()
+        if len(p_best) > 1:
+            # there is more than one solution -- pick one randomly, since
+            # the order returned by the feature extractor might be
+            # deterministic
+            return np.random.choice(p_best)
+        else:
+            return p_best[0]
+
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################
 
-    def _predict_independent(self, x, as_label=True):
+    def _predict_independent(self, x):
         (features, labels) = self._feature_extractor.generate_vector(x)
         if self.feature_count > self._w.shape[0]:
             self._w.resize(self.feature_count)
         guess = np.argmax(np.dot(features, self._w))
-        return labels[guess] if as_label else self._label_mapper[labels[guess]]
+        return labels[guess]
 
     def _perform_train_iteration_independent(self, x, y, permutation):
         for n in range(len(x)):
             idx = permutation[n]
             (features, _) = \
                 self._feature_extractor.generate_vector(x[idx], truth=y[idx])
-            if self.feature_count > self._w.shape[0]:
-                self._w.resize(self.feature_count)
-            p = np.dot(features, self._w)
-            p_best = np.argwhere(p == np.amax(p)).flatten()
-            if len(p_best) > 1:
-                # there is more than one solution -- pick one randomly, since
-                # the order returned by the feature extractor might be
-                # deterministic
-                guess = np.random.choice(p_best)
-            else:
-                guess = p_best[0]
+            guess = self.predict_features(features)
             if guess != 0:
                 # update step
                 self._w += self.learning_rate * features[0]
@@ -63,14 +68,14 @@ class GenerativePerceptron(Perceptron):
 
     def _evaluate_training_set_independent(self, x, y):
         correct = sum(a == b for (a, b) in \
-                      it.izip(self._predict_all_independent(x, as_label=True), y))
+                      it.izip(self._predict_all_independent(x), y))
         return 1.0 * correct / len(x)
 
     ############################################################################
     #### Sequenced prediction ##################################################
     ############################################################################
 
-    def _predict_sequenced(self, x, as_label=True):
+    def _predict_sequenced(self, x):
         (padded_x, history, startpos) = self._initialize_sequence(x)
         for i in range(startpos, startpos + len(x)):
             (features, labels) = self._feature_extractor.generate_vector(
@@ -81,7 +86,7 @@ class GenerativePerceptron(Perceptron):
             guess = np.argmax(np.dot(features, self._w))
             history.append(labels[guess])
         guesses = history[self._left_context_size:]
-        return guesses if as_label else self._label_mapper.map_list(guesses)
+        return guesses
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
         for n in range(len(x)):
@@ -95,17 +100,7 @@ class GenerativePerceptron(Perceptron):
                     pad_x, pos, history=history,
                     truth=truth_seq[pos - self._left_context_size]
                     )
-                if self.feature_count > self._w.shape[0]:
-                    self._w.resize(self.feature_count)
-                p = np.dot(features, self._w)
-                p_best = np.argwhere(p == np.amax(p)).flatten()
-                if len(p_best) > 1:
-                    # there is more than one solution -- pick one randomly, since
-                    # the order returned by the feature extractor might be
-                    # deterministic
-                    guess = np.random.choice(p_best)
-                else:
-                    guess = p_best[0]
+                guess = self.predict_features(features)
                 if guess != 0:
                     # update step
                     self._w += self.learning_rate * features[0]
@@ -118,7 +113,7 @@ class GenerativePerceptron(Perceptron):
         # but potentially much faster on a huge dataset
         correct = 0
         total = 0
-        for y_pred, y_truth in it.izip(self._predict_all_sequenced(x, as_label=True), y):
+        for y_pred, y_truth in it.izip(self._predict_all_sequenced(x), y):
             correct += sum(a == b for (a, b) in it.izip(y_pred, y_truth))
             total += len(y_pred)
         return 1.0 * correct / total

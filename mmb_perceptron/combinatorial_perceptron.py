@@ -68,11 +68,11 @@ class CombinatorialPerceptron(Perceptron):
     #### Standard (independent) prediction #####################################
     ############################################################################
 
-    def _predict_independent(self, x, as_label=True):
+    def _predict_independent(self, x):
         """Predict the class label of a given data point.
         """
         guess = self.predict_vector(self._feature_extractor.get_vector(x))
-        return self._label_mapper.get_name(guess) if as_label else guess
+        return self._label_mapper.get_name(guess)
 
     def _perform_train_iteration_independent(self, x, y, permutation):
         for n in range(len(x)):
@@ -93,7 +93,7 @@ class CombinatorialPerceptron(Perceptron):
     #### Sequenced prediction ##################################################
     ############################################################################
 
-    def _predict_sequenced(self, x, as_label=True):
+    def _predict_sequenced(self, x):
         (padded_x, history, startpos) = self._initialize_sequence(x)
         for i in range(startpos, startpos + len(x)):
             guess = self.predict_vector(
@@ -102,7 +102,7 @@ class CombinatorialPerceptron(Perceptron):
                 ))
             history.append(self._label_mapper.get_name(guess))
         guesses = history[self._left_context_size:]
-        return guesses if as_label else self._label_mapper.map_list(guesses)
+        return guesses
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
         for n in range(len(x)):
@@ -131,7 +131,7 @@ class CombinatorialPerceptron(Perceptron):
         # but potentially much faster on a huge dataset
         correct = 0
         total = 0
-        for y_pred, y_truth in it.izip(self._predict_all_sequenced(x, as_label=False), y):
-            correct += sum(y_pred == y_truth)
+        for y_pred, y_truth in it.izip(self._predict_all_sequenced(x), y):
+            correct += sum(self._label_mapper.map_list(y_pred) == y_truth)
             total += len(y_pred)
         return 1.0 * correct / total

@@ -151,15 +151,15 @@ class Perceptron(object):
     #### Standard (independent) prediction #####################################
     ############################################################################
 
-    def _predict_independent(self, x, as_label=True):
+    def _predict_independent(self, x):
         """Predict the class label of a given data point.
         """
         raise NotImplementedError("predictor functionality not implemented")
 
-    def _predict_all_independent(self, x, as_label=True):
+    def _predict_all_independent(self, x):
         """Predict the class labels of a given dataset (= list of feature vectors).
         """
-        return [self._predict_independent(y, as_label=as_label) for y in x]
+        return [self._predict_independent(y) for y in x]
 
     def _set_context_attributes_independent(self, _):
         pass
@@ -168,13 +168,13 @@ class Perceptron(object):
     #### Sequenced prediction ##################################################
     ############################################################################
 
-    def _predict_sequenced(self, x, as_label=True):
+    def _predict_sequenced(self, x):
         raise NotImplementedError("predictor functionality not implemented")
 
-    def _predict_all_sequenced(self, x, as_label=True):
+    def _predict_all_sequenced(self, x):
         """Predict the class labels of a given sequential dataset.
         """
-        return [self._predict_sequenced(y, as_label=as_label) for y in x]
+        return [self._predict_sequenced(y) for y in x]
 
     def _set_context_attributes_sequenced(self, obj):
         """Set context attributes from an object providing context size,
