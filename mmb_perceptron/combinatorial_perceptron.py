@@ -24,13 +24,15 @@ class CombinatorialPerceptron(Perceptron):
     Use this classifier, for example, for the AND/OR problem or for POS tagging.
     """
 
+    def reset_weights(self):
+        self._w = np.zeros((self.feature_count, self.label_count))
+
+    def _resize_weights(self, w):
+        if w.shape != (self.feature_count, self.label_count):
+            w.resize((self.feature_count, self.label_count))
+
     def predict_vector(self, vec):
         return np.argmax(np.dot(vec, self._w))
-
-    def _predict_all_independent(self, x, as_label=True):
-        assert all([isinstance(e, np.ndarray) for e in x])
-        guesses = np.argmax(np.dot(x, self._w), axis=1).transpose()
-        return self._label_mapper.get_names(guesses) if as_label else guesses
 
     def _preprocess_data(self, data):
         """Preprocess a full list of training data.
@@ -47,64 +49,30 @@ class CombinatorialPerceptron(Perceptron):
             raise ValueError("error converting data")
         return data
 
-    def _train_common(self, x, y, seed=1):
+    def _preprocess_train(self, x, y):
+        assert len(x) == len(y)
+        self._label_mapper.reset()
         if self.sequenced:
-            train_func = self._perform_train_iteration_sequenced
-            eval_func = self._evaluate_training_set_sequenced
-            preprocess_train = self._preprocess_train_sequenced
+            # cannot preprocess the data (since vectors can depend on previous
+            # predictions) except for forwarding it to the feature extractor
+            self._feature_extractor.init(x)
+            new_x = x
+            new_y = [np.array(self._label_mapper.map_list(l)) for l in y]
         else:
-            train_func = self._perform_train_iteration_independent
-            eval_func = self._evaluate_training_set_independent
-            preprocess_train = self._preprocess_train_independent
-
-        (x, y) = preprocess_train(x, y)
-        self._w = np.zeros((self.feature_count, self.label_count))
-        all_w = []
-
-        for iteration in range(self.iterations):
-            # random permutation
-            np.random.seed(seed)
-            permutation = np.random.permutation(len(x))
-            seed += 1
-
-            # training
-            train_func(x, y, permutation)
-
-            # evaluation
-            accuracy = eval_func(x, y)
-            self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
-            if self.averaged:
-                all_w.append(self._w.copy())
-
-        if self.averaged:
-            if self.sequenced: # check if feature count changed between iterations
-                for w in all_w:
-                    if w.shape != (self.feature_count, self.label_count):
-                        w.resize((self.feature_count, self.label_count))
-            self._w = sum(all_w) / len(all_w)
+            new_x = self._preprocess_data(x)
+            new_y = np.array(self._label_mapper.map_list(y))
+        self.label_count = len(self._label_mapper)
+        return (new_x, new_y)
 
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################
 
-    _train_independent = _train_common
-
-    def _preprocess_labels_independent(self, labels):
-        """Preprocess a full vector/list of class labels.
-
-        Stores the number of unique class labels, and returns a numpy array of
-        all labels.
+    def _predict_independent(self, x, as_label=True):
+        """Predict the class label of a given data point.
         """
-        self._label_mapper.reset()
-        labels = np.array(self._label_mapper.map_list(labels))
-        self.label_count = len(self._label_mapper)
-        return labels
-
-    def _preprocess_train_independent(self, x, y):
-        assert len(x) == len(y)
-        new_x = self._preprocess_data(x)
-        new_y = self._preprocess_labels_independent(y)
-        return (new_x, new_y)
+        guess = self.predict_vector(self._feature_extractor.get_vector(x))
+        return self._label_mapper.get_name(guess) if as_label else guess
 
     def _perform_train_iteration_independent(self, x, y, permutation):
         for n in range(len(x)):
@@ -116,28 +84,25 @@ class CombinatorialPerceptron(Perceptron):
                 self._w[:, guess]  -= self.learning_rate * x[idx]
 
     def _evaluate_training_set_independent(self, x, y):
-        correct = sum(self._predict_all_independent(x, as_label=False) == y)
+        # more efficient than using _predict_all_independent
+        guesses = np.argmax(np.dot(x, self._w), axis=1).transpose()
+        correct = sum(guesses == y)
         return 1.0 * correct / len(x)
 
     ############################################################################
     #### Sequenced prediction ##################################################
     ############################################################################
 
-    _train_sequenced = _train_common
-
-    def _preprocess_labels_sequenced(self, label_seq):
-        self._label_mapper.reset()
-        new_seq = [np.array(self._label_mapper.map_list(l)) for l in label_seq]
-        self.label_count = len(self._label_mapper)
-        return new_seq
-
-    def _preprocess_train_sequenced(self, x, y):
-        assert len(x) == len(y)
-        # cannot preprocess the data (since vectors can depend on previous
-        # predictions) except for forwarding it to the feature extractor
-        self._feature_extractor.init(x)
-        new_y = self._preprocess_labels_sequenced(y)
-        return (x, new_y)
+    def _predict_sequenced(self, x, as_label=True):
+        (padded_x, history, startpos) = self._initialize_sequence(x)
+        for i in range(startpos, startpos + len(x)):
+            guess = self.predict_vector(
+                self._feature_extractor.get_vector(
+                    padded_x, i, history=history
+                ))
+            history.append(self._label_mapper.get_name(guess))
+        guesses = history[self._left_context_size:]
+        return guesses if as_label else self._label_mapper.map_list(guesses)
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
         for n in range(len(x)):

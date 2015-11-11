@@ -16,51 +16,22 @@ class GenerativePerceptron(Perceptron):
     score from the generated feature vectors determines the prediction.
     """
 
+    def reset_weights(self):
+        self._w = np.zeros(self.feature_count)
+
+    def _resize_weights(self, w):
+        if w.shape != (self.feature_count,):
+            w.resize(self.feature_count)
+
     def _preprocess_train(self, x, y):
         assert len(x) == len(y)
         self._feature_extractor.init(x)
         self._label_mapper.reset()
         return (x, y)
 
-    def _train_common(self, x, y, seed=1):
-        if self.sequenced:
-            train_func = self._perform_train_iteration_sequenced
-            eval_func = self._evaluate_training_set_sequenced
-        else:
-            train_func = self._perform_train_iteration_independent
-            eval_func = self._evaluate_training_set_independent
-
-        (x, y) = self._preprocess_train(x, y)
-        self._w = np.zeros(self.feature_count)
-        all_w = []
-
-        for iteration in range(self.iterations):
-            # random permutation
-            np.random.seed(seed)
-            permutation = np.random.permutation(len(x))
-            seed += 1
-
-            # training
-            train_func(x, y, permutation)
-
-            # evaluation
-            accuracy = eval_func(x, y)
-            self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
-            if self.averaged:
-                all_w.append(self._w.copy())
-
-        if self.averaged:
-            if self.sequenced: # check if feature count changed between iterations
-                for w in all_w:
-                    if w.shape != (self.feature_count,):
-                        w.resize(self.feature_count)
-            self._w = sum(all_w) / len(all_w)
-
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################
-
-    _train_independent = _train_common
 
     def _predict_independent(self, x, as_label=True):
         (features, labels) = self._feature_extractor.generate_vector(x)

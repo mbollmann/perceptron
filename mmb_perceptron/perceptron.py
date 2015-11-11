@@ -7,6 +7,9 @@ from .label_mapper import LabelMapper
 
 class Perceptron(object):
     """A perceptron classifier.
+
+    This class implements methods common to all perceptron variants, but cannot
+    be used by itself.  Always use derived classes instead.
     """
     _feature_extractor = None
     label_count = 0
@@ -71,18 +74,72 @@ class Perceptron(object):
         if status:
             self.predict = self._predict_sequenced
             self.predict_all = self._predict_all_sequenced
-            self.train = self._train_sequenced
             self.set_context_attributes = self._set_context_attributes_sequenced
         else:
             self.predict = self._predict_independent
             self.predict_all = self._predict_all_independent
-            self.train = self._train_independent
             self.set_context_attributes = self._set_context_attributes_independent
 
-    def predict_vector(self, vec):
-        """Predict the class label of a given feature vector.
+    def train(self, x, y, seed=1):
+        """Train the perceptron on independent data points.
+
+        Parameters:
+          x - A list of data points or feature vectors, or (if
+              sequenced) a list of data point/feature vector sequences
+          y - A list of correct class labels
         """
-        raise NotImplementedError("predict_vector function not implemented")
+        if self.sequenced:
+            train_func = self._perform_train_iteration_sequenced
+            eval_func = self._evaluate_training_set_sequenced
+        else:
+            train_func = self._perform_train_iteration_independent
+            eval_func = self._evaluate_training_set_independent
+
+        (x, y) = self._preprocess_train(x, y)
+        self.reset_weights()
+        all_w = []
+
+        for iteration in range(self.iterations):
+            # random permutation
+            np.random.seed(seed)
+            permutation = np.random.permutation(len(x))
+            seed += 1
+
+            # training
+            train_func(x, y, permutation)
+
+            # evaluation
+            accuracy = eval_func(x, y)
+            self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
+            if self.averaged:
+                all_w.append(self._w.copy())
+
+        if self.averaged:
+            if self.sequenced: # check if feature count changed between iterations
+                for w in all_w:
+                    self._resize_weights(w)
+            self._w = sum(all_w) / len(all_w)
+
+    ############################################################################
+    #### Functions to be implemented by derived classes ########################
+    ############################################################################
+
+    def reset_weights(self):
+        """Reset learned weights.
+        """
+        raise NotImplementedError("reset_weights function not implemented")
+
+    def _perform_train_iteration_independent(self, x, y, permutation):
+        raise NotImplementedError("training functionality not implemented")
+
+    def _perform_train_iteration_sequenced(self, x, y, permutation):
+        raise NotImplementedError("training functionality not implemented")
+
+    def _evaluate_training_set_independent(self, x, y):
+        raise NotImplementedError("training functionality not implemented")
+
+    def _evaluate_training_set_sequenced(self, x, y):
+        raise NotImplementedError("training functionality not implemented")
 
     ############################################################################
     #### Standard (independent) prediction #####################################
@@ -91,22 +148,12 @@ class Perceptron(object):
     def _predict_independent(self, x, as_label=True):
         """Predict the class label of a given data point.
         """
-        guess = self.predict_vector(self._feature_extractor.get_vector(x))
-        return self._label_mapper.get_name(guess) if as_label else guess
+        raise NotImplementedError("predictor functionality not implemented")
 
     def _predict_all_independent(self, x, as_label=True):
         """Predict the class labels of a given dataset (= list of feature vectors).
         """
         return [self._predict_independent(y, as_label=as_label) for y in x]
-
-    def _train_independent(self, x, y, seed=1):
-        """Train the perceptron on independent data points.
-
-        Parameters:
-          x - A list of data points or feature vectors
-          y - A list of correct class labels
-        """
-        raise NotImplementedError("train function not implemented")
 
     def _set_context_attributes_independent(self, _):
         pass
@@ -116,35 +163,12 @@ class Perceptron(object):
     ############################################################################
 
     def _predict_sequenced(self, x, as_label=True):
-        """Predict the class labels of a given sequence of data points.
-
-        Requires a feature extractor to be given; the feature extractor can
-        derive its features from the full sequence of data points and the
-        previous predictions.
-        """
-        (padded_x, history, startpos) = self._initialize_sequence(x)
-        for i in range(startpos, startpos + len(x)):
-            guess = self.predict_vector(
-                self._feature_extractor.get_vector(
-                    padded_x, i, history=history
-                ))
-            history.append(self._label_mapper.get_name(guess))
-        guesses = history[self._left_context_size:]
-        return guesses if as_label else self._label_mapper.map_list(guesses)
+        raise NotImplementedError("predictor functionality not implemented")
 
     def _predict_all_sequenced(self, x, as_label=True):
         """Predict the class labels of a given sequential dataset.
         """
         return [self._predict_sequenced(y, as_label=as_label) for y in x]
-
-    def _train_sequenced(self, x, y, seed=1):
-        """Train the perceptron on fixed sequences of data points.
-
-        Parameters:
-          x - A list of sequences of data points
-          y - A list of sequences of correct class labels
-        """
-        raise NotImplementedError("train_seq function not implemented")
 
     def _set_context_attributes_sequenced(self, obj):
         """Set context attributes from an object providing context size,
