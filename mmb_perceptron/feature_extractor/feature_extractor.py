@@ -9,7 +9,10 @@ class FeatureExtractor(object):
     convert them into feature representations, in the form of dictionaries
     mapping feature names to their respective feature values.
     """
-    _context_size = (0, 0)
+    _left_context_size = 0
+    _right_context_size = 0
+    _minimum_left_context_size = 0
+    _minimum_right_context_size = 0
 
     def __init__(self, sequenced=False):
         self._label_mapper = LabelMapper()
@@ -22,13 +25,19 @@ class FeatureExtractor(object):
 
         Given as (left_context_size, right_context_size).
         """
-        return self._context_size
+        return (self._left_context_size, self._right_context_size)
 
     @context_size.setter
-    def context_size(self, left, right):
-        assert left >= 0
-        assert right >= 0
-        self._context_size = (left, right)
+    def context_size(self, size):
+        (left, right) = size
+        if left < self._minimum_left_context_size:
+            raise ValueError("left context size too small ({0} < {1})"\
+                             .format(left, self._minimum_left_context_size))
+        if right < self._minimum_right_context_size:
+            raise ValueError("right context size too small ({0} < {1})"\
+                             .format(right, self._minimum_right_context_size))
+        self._left_context_size = left
+        self._right_context_size = right
 
     @property
     def feature_count(self):
@@ -96,11 +105,11 @@ class FeatureExtractor(object):
     def __getstate__(self):
         return {
             'label_mapper': self._label_mapper,
-            'context_size': self._context_size,
+            'context_size': self.context_size,
             'sequenced': self.sequenced
             }
 
     def __setstate__(self, state):
         self._label_mapper = state['label_mapper']
-        self._context_size = state['context_size']
+        self.context_size = state['context_size']
         self.sequenced = state['sequenced']

@@ -60,7 +60,8 @@ class CharacterLengthGenerator(GenerativeExtractor):
 
 
 class ContextualFeatureExtractor(FeatureExtractor):
-    _context_size = (1, 1)
+    _left_context_size = 1
+    _right_context_size = 1
 
     def _get_sequenced(self, seq, pos, history=None):
         features = {'bias': 1.0}
