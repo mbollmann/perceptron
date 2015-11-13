@@ -21,7 +21,7 @@ class GenerativePerceptron(Perceptron):
 
     def _resize_weights(self, w):
         if w.shape != (self.feature_count,):
-            w.resize(self.feature_count)
+            w.resize(self.feature_count, refcheck=False)
 
     def _preprocess_train(self, x, y):
         assert len(x) == len(y)

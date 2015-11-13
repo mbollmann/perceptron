@@ -29,7 +29,7 @@ class CombinatorialPerceptron(Perceptron):
 
     def _resize_weights(self, w):
         if w.shape != (self.feature_count, len(self._label_mapper)):
-            w.resize((self.feature_count, len(self._label_mapper)))
+            w.resize((self.feature_count, len(self._label_mapper)), refcheck=False)
 
     def predict_vector(self, vec):
         return np.argmax(np.dot(vec, self._w))
@@ -40,10 +40,12 @@ class CombinatorialPerceptron(Perceptron):
         if self.sequenced:
             (padded_x, history, startpos) = self._initialize_sequence(x)
             for i in range(startpos, startpos + len(x)):
-                guess = self.predict_vector(
-                    self._feature_extractor.get_vector(
-                        padded_x, i, history=history
-                        ))
+                vector = self._feature_extractor.get_vector(
+                    padded_x, i, history=history
+                    )
+                if self.feature_count > self._w.shape[0]:
+                    self._w.resize((self.feature_count, len(self._label_mapper)))
+                guess = self.predict_vector(vector)
                 history.append(self._label_mapper.get_name(guess))
                 guesses = history[self._left_context_size:]
             return guesses
