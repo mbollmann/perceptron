@@ -8,6 +8,7 @@ class InputFormatError(Exception):
 def log(text, type="info"):
     if type == 'warn': sys.stderr.write("\033[1;33m")
     if type == 'error': sys.stderr.write("\033[1;31m")
+    if type == 'info!': sys.stderr.write("\033[1;32m")
     sys.stderr.write("[{:^5}] ".format(type))
     try:
         sys.stderr.write(text)
