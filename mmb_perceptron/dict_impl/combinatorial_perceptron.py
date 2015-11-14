@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from collections import defaultdict
 import itertools as it
-import numpy as np
+import operator as op
 from ..perceptron import Perceptron
+
+def defaultdict_float(): return defaultdict(float)
 
 class CombinatorialPerceptron(Perceptron):
     """Perceptron classifier with combinatorial feature explosion.
@@ -23,15 +26,32 @@ class CombinatorialPerceptron(Perceptron):
     Use this classifier, for example, for the AND/OR problem or for POS tagging.
     """
 
+    @property
+    def all_labels(self):
+        try:
+            return self._all_labels
+        except AttributeError:
+            self._all_labels = sorted(self._label_mapper)
+            return self._all_labels
+
     def reset_weights(self):
-        self._w = np.zeros((self.feature_count, len(self._label_mapper)))
+        self._w = defaultdict(defaultdict_float)
 
     def _resize_weights(self, w):
-        if w.shape != (self.feature_count, len(self._label_mapper)):
-            w.resize((self.feature_count, len(self._label_mapper)), refcheck=False)
+        pass
 
-    def predict_vector(self, vec):
-        return np.argmax(np.dot(vec, self._w))
+    def predict_features(self, features):
+        scores = defaultdict(float)
+        for feat, value in features.iteritems():
+            if value == 0 or feat not in self._w:
+                continue
+            for label, weight in self._w[feat].iteritems():
+                scores[label] += value * weight
+        # Note: In case of multiple maximum values, it's important that the
+        # return prediction remains consistent; that's why we use all_labels
+        # here as basis for the prediction, which is a **sorted** list of class
+        # labels.
+        return max(self.all_labels, key=lambda label: scores[label])
 
     def predict(self, x):
         """Predict the class label of a given data point.
@@ -39,18 +59,16 @@ class CombinatorialPerceptron(Perceptron):
         if self.sequenced:
             (padded_x, history, startpos) = self._initialize_sequence(x)
             for i in range(startpos, startpos + len(x)):
-                vector = self._feature_extractor.get_vector(
+                features = self._feature_extractor.get(
                     padded_x, i, history=history
                     )
-                if self.feature_count > self._w.shape[0]:
-                    self._w.resize((self.feature_count, len(self._label_mapper)))
-                guess = self.predict_vector(vector)
-                history.append(self._label_mapper.get_name(guess))
+                guess = self.predict_features(features)
+                history.append(guess)
                 guesses = history[self._left_context_size:]
             return guesses
         else:
-            guess = self.predict_vector(self._feature_extractor.get_vector(x))
-            return self._label_mapper.get_name(guess)
+            guess = self.predict_features(self._feature_extractor.get(x))
+            return guess
 
     def _preprocess_data(self, data):
         """Preprocess a full list of training data.
@@ -58,13 +76,8 @@ class CombinatorialPerceptron(Perceptron):
         if len(data) < 1:
             self.feature_count = 0
             return data
-        if not isinstance(data[0], np.ndarray):
-            self._feature_extractor.init(data)
-            data = [self._feature_extractor.get_vector(x) for x in data]
-        else:
-            self.feature_count = data[0].shape[0]
-        if not all(x.shape[0] == self.feature_count for x in data):
-            raise ValueError("error converting data")
+        self._feature_extractor.init(data)
+        data = [self._feature_extractor.get(x) for x in data]
         return data
 
     def _preprocess_train(self, x, y):
@@ -75,11 +88,22 @@ class CombinatorialPerceptron(Perceptron):
             # predictions) except for forwarding it to the feature extractor
             self._feature_extractor.init(x)
             new_x = x
-            new_y = [np.array(self._label_mapper.map_list(l)) for l in y]
+            for seq_y in y:
+                self._label_mapper.extend(seq_y)
         else:
             new_x = self._preprocess_data(x)
-            new_y = np.array(self._label_mapper.map_list(y))
-        return (new_x, new_y)
+            self._label_mapper.extend(y)
+        return (new_x, y)
+
+    def average_weights(self, all_w):
+        averaged = defaultdict(defaultdict_float)
+        divisor = float(len(all_w))
+        final_w = all_w[-1]
+        for feat, label_weights in final_w.iteritems():
+            for label, weight in label_weights.iteritems():
+                averaged[feat][label] = \
+                    sum((_w[feat][label] for _w in all_w)) / divisor
+        return averaged
 
     ############################################################################
     #### Standard (independent) prediction #####################################
@@ -88,16 +112,21 @@ class CombinatorialPerceptron(Perceptron):
     def _perform_train_iteration_independent(self, x, y, permutation):
         for n in range(len(x)):
             idx = permutation[n]
-            guess = np.argmax(np.dot(x[idx], self._w)) # predict_vector
-            if guess != y[idx]:
+            guess = self.predict_features(x[idx])
+            truth = y[idx]
+            if guess != truth:
                 # update step
-                self._w[:, y[idx]] += self.learning_rate * x[idx]
-                self._w[:, guess]  -= self.learning_rate * x[idx]
+                for feat, value in x[idx].iteritems():
+                    self._w[feat][truth] += self.learning_rate * value
+                    self._w[feat][guess] -= self.learning_rate * value
 
     def _evaluate_training_set_independent(self, x, y):
-        # more efficient than using _predict_all_independent
-        guesses = np.argmax(np.dot(x, self._w), axis=1).transpose()
-        correct = sum(guesses == y)
+        # cannot use predict_all() because we've pre-calculated the features
+        correct = 0
+        for (features, truth) in it.izip(x, y):
+            guess = self.predict_features(features)
+            if guess == truth:
+                correct += 1
         return 1.0 * correct / len(x)
 
     ############################################################################
@@ -112,26 +141,22 @@ class CombinatorialPerceptron(Perceptron):
 
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
-                vec = self._feature_extractor.get_vector(
+                features = self._feature_extractor.get(
                     pad_x, pos, history=history
                     )
-                if len(vec) > self._w.shape[0]:
-                    self._w.resize((self.feature_count, len(self._label_mapper)))
-                guess = np.argmax(np.dot(vec, self._w)) # predict_vector
+                guess = self.predict_features(features)
                 truth = truth_seq[pos - self._left_context_size]
                 if guess != truth:
                     # update step
-                    self._w[:, truth] += self.learning_rate * vec
-                    self._w[:, guess] -= self.learning_rate * vec
-                history.append(self._label_mapper.get_name(guess))
+                    for feat, value in features.iteritems():
+                        self._w[feat][truth] += self.learning_rate * value
+                        self._w[feat][guess] -= self.learning_rate * value
+                history.append(guess)
 
     def _evaluate_training_set_sequenced(self, x, y):
-        # TODO: could we skip this step and use the accuracy of the
-        # prediction we already make during training? this is less accurate,
-        # but potentially much faster on a huge dataset
         correct = 0
         total = 0
         for y_pred, y_truth in it.izip(self.predict_all(x), y):
-            correct += sum(self._label_mapper.map_list(y_pred) == y_truth)
+            correct += sum((y_p == y_t for y_p, y_t in it.izip(y_pred, y_truth)))
             total += len(y_pred)
         return 1.0 * correct / total

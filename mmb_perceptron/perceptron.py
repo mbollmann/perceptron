@@ -103,14 +103,18 @@ class Perceptron(object):
             # evaluation
             accuracy = eval_func(x, y)
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
-            if self.averaged:
+            if self.averaged and self.iterations > 1:
                 all_w.append(self._w.copy())
 
-        if self.averaged:
-            if self.sequenced: # check if feature count changed between iterations
-                for w in all_w:
-                    self._resize_weights(w)
-            self._w = sum(all_w) / len(all_w)
+        if self.averaged and self.iterations > 1:
+            self._log("Averaging weights...")
+            self._w = self.average_weights(all_w)
+
+    def average_weights(self, all_w):
+        if self.sequenced: # check if feature count changed between iterations
+            for w in all_w:
+                self._resize_weights(w)
+        return sum(all_w) / len(all_w)
 
     def predict_all(self, x):
         """Predict the class labels of a given dataset (= list of data points/sequences).
