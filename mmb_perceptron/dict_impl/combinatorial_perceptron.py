@@ -110,6 +110,7 @@ class CombinatorialPerceptron_Dict(Perceptron):
     ############################################################################
 
     def _perform_train_iteration_independent(self, x, y, permutation):
+        correct, total = 0, len(x)
         for n in range(len(x)):
             idx = permutation[n]
             guess = self.predict_features(x[idx])
@@ -119,21 +120,16 @@ class CombinatorialPerceptron_Dict(Perceptron):
                 for feat, value in x[idx].iteritems():
                     self._w[feat][truth] += self.learning_rate * value
                     self._w[feat][guess] -= self.learning_rate * value
-
-    def _evaluate_training_set_independent(self, x, y):
-        # cannot use predict_all() because we've pre-calculated the features
-        correct = 0
-        for (features, truth) in it.izip(x, y):
-            guess = self.predict_features(features)
-            if guess == truth:
+            else:
                 correct += 1
-        return 1.0 * correct / len(x)
+        return 1.0 * correct / total
 
     ############################################################################
     #### Sequenced prediction ##################################################
     ############################################################################
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
+        correct, total = 0, 0
         for n in range(len(x)):
             idx = permutation[n]
             (pad_x, history, start_pos) = self._initialize_sequence(x[idx])
@@ -141,6 +137,7 @@ class CombinatorialPerceptron_Dict(Perceptron):
 
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
+                total += 1
                 features = self._feature_extractor.get(
                     pad_x, pos, history=history
                     )
@@ -151,12 +148,8 @@ class CombinatorialPerceptron_Dict(Perceptron):
                     for feat, value in features.iteritems():
                         self._w[feat][truth] += self.learning_rate * value
                         self._w[feat][guess] -= self.learning_rate * value
+                else:
+                    correct += 1
                 history.append(guess)
 
-    def _evaluate_training_set_sequenced(self, x, y):
-        correct = 0
-        total = 0
-        for y_pred, y_truth in it.izip(self.predict_all(x), y):
-            correct += sum((y_p == y_t for y_p, y_t in it.izip(y_pred, y_truth)))
-            total += len(y_pred)
         return 1.0 * correct / total

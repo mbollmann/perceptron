@@ -68,6 +68,7 @@ class GenerativePerceptron_Numpy(Perceptron):
     ############################################################################
 
     def _perform_train_iteration_independent(self, x, y, permutation):
+        correct, total = 0, len(x)
         for n in range(len(x)):
             idx = permutation[n]
             (features, _) = \
@@ -77,17 +78,16 @@ class GenerativePerceptron_Numpy(Perceptron):
                 # update step
                 self._w += self.learning_rate * features[0]
                 self._w -= self.learning_rate * features[guess]
-
-    def _evaluate_training_set_independent(self, x, y):
-        correct = sum(a == b for (a, b) in \
-                      it.izip(self.predict_all(x), y))
-        return 1.0 * correct / len(x)
+            else:
+                correct += 1
+        return 1.0 * correct / total
 
     ############################################################################
     #### Sequenced prediction ##################################################
     ############################################################################
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
+        correct, total = 0, 0
         for n in range(len(x)):
             idx = permutation[n]
             (pad_x, history, start_pos) = self._initialize_sequence(x[idx])
@@ -95,6 +95,7 @@ class GenerativePerceptron_Numpy(Perceptron):
 
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
+                total += 1
                 (features, labels) = self._feature_extractor.generate_vector(
                     pad_x, pos, history=history,
                     truth=truth_seq[pos - self._left_context_size]
@@ -104,15 +105,8 @@ class GenerativePerceptron_Numpy(Perceptron):
                     # update step
                     self._w += self.learning_rate * features[0]
                     self._w -= self.learning_rate * features[guess]
+                else:
+                    correct += 1
                 history.append(labels[guess])
 
-    def _evaluate_training_set_sequenced(self, x, y):
-        # TODO: could we skip this step and use the accuracy of the
-        # prediction we already make during training? this is less accurate,
-        # but potentially much faster on a huge dataset
-        correct = 0
-        total = 0
-        for y_pred, y_truth in it.izip(self.predict_all(x), y):
-            correct += sum(a == b for (a, b) in it.izip(y_pred, y_truth))
-            total += len(y_pred)
         return 1.0 * correct / total

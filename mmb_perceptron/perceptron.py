@@ -82,10 +82,8 @@ class Perceptron(object):
         """
         if self.sequenced:
             train_func = self._perform_train_iteration_sequenced
-            eval_func = self._evaluate_training_set_sequenced
         else:
             train_func = self._perform_train_iteration_independent
-            eval_func = self._evaluate_training_set_independent
 
         (x, y) = self._preprocess_train(x, y)
         self.reset_weights()
@@ -98,10 +96,7 @@ class Perceptron(object):
             seed += 1
 
             # training
-            train_func(x, y, permutation)
-
-            # evaluation
-            accuracy = eval_func(x, y)
+            accuracy = train_func(x, y, permutation)
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
             if self.averaged and self.iterations > 1:
                 all_w.append(self._w.copy())
@@ -170,12 +165,6 @@ class Perceptron(object):
         raise NotImplementedError("training functionality not implemented")
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
-        raise NotImplementedError("training functionality not implemented")
-
-    def _evaluate_training_set_independent(self, x, y):
-        raise NotImplementedError("training functionality not implemented")
-
-    def _evaluate_training_set_sequenced(self, x, y):
         raise NotImplementedError("training functionality not implemented")
 
     ############################################################################

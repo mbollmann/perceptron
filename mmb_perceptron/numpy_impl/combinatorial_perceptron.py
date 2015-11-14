@@ -86,6 +86,7 @@ class CombinatorialPerceptron_Numpy(Perceptron):
     ############################################################################
 
     def _perform_train_iteration_independent(self, x, y, permutation):
+        correct, total = 0, len(x)
         for n in range(len(x)):
             idx = permutation[n]
             guess = np.argmax(np.dot(x[idx], self._w)) # predict_vector
@@ -93,18 +94,16 @@ class CombinatorialPerceptron_Numpy(Perceptron):
                 # update step
                 self._w[:, y[idx]] += self.learning_rate * x[idx]
                 self._w[:, guess]  -= self.learning_rate * x[idx]
-
-    def _evaluate_training_set_independent(self, x, y):
-        # more efficient than using _predict_all_independent
-        guesses = np.argmax(np.dot(x, self._w), axis=1).transpose()
-        correct = sum(guesses == y)
-        return 1.0 * correct / len(x)
+            else:
+                correct += 1
+        return 1.0 * correct / total
 
     ############################################################################
     #### Sequenced prediction ##################################################
     ############################################################################
 
     def _perform_train_iteration_sequenced(self, x, y, permutation):
+        correct, total = 0, 0
         for n in range(len(x)):
             idx = permutation[n]
             (pad_x, history, start_pos) = self._initialize_sequence(x[idx])
@@ -112,6 +111,7 @@ class CombinatorialPerceptron_Numpy(Perceptron):
 
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
+                total += 1
                 vec = self._feature_extractor.get_vector(
                     pad_x, pos, history=history
                     )
@@ -123,15 +123,8 @@ class CombinatorialPerceptron_Numpy(Perceptron):
                     # update step
                     self._w[:, truth] += self.learning_rate * vec
                     self._w[:, guess] -= self.learning_rate * vec
+                else:
+                    correct += 1
                 history.append(self._label_mapper.get_name(guess))
 
-    def _evaluate_training_set_sequenced(self, x, y):
-        # TODO: could we skip this step and use the accuracy of the
-        # prediction we already make during training? this is less accurate,
-        # but potentially much faster on a huge dataset
-        correct = 0
-        total = 0
-        for y_pred, y_truth in it.izip(self.predict_all(x), y):
-            correct += sum(self._label_mapper.map_list(y_pred) == y_truth)
-            total += len(y_pred)
         return 1.0 * correct / total
