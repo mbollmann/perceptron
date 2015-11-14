@@ -2,7 +2,6 @@
 
 import itertools as it
 import numpy as np
-import random
 from .label_mapper import LabelMapper
 
 class Perceptron(object):

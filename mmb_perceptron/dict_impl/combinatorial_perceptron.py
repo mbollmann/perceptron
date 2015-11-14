@@ -2,8 +2,7 @@
 
 import itertools as it
 import numpy as np
-import random
-from .perceptron import Perceptron
+from ..perceptron import Perceptron
 
 class CombinatorialPerceptron(Perceptron):
     """Perceptron classifier with combinatorial feature explosion.
