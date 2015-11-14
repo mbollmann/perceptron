@@ -4,7 +4,7 @@ import itertools as it
 import numpy as np
 from ..perceptron import Perceptron
 
-class GenerativePerceptron(Perceptron):
+class GenerativePerceptron_Dict(Perceptron):
     """Perceptron classifier with generation function.
 
     This classifier uses a generation function to get a list of prediction

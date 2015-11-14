@@ -7,7 +7,7 @@ from ..perceptron import Perceptron
 
 def defaultdict_float(): return defaultdict(float)
 
-class CombinatorialPerceptron(Perceptron):
+class CombinatorialPerceptron_Dict(Perceptron):
     """Perceptron classifier with combinatorial feature explosion.
 
     This classifier assumes that feature vectors do not depend on the

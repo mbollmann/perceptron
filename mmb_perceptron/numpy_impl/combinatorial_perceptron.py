@@ -4,7 +4,7 @@ import itertools as it
 import numpy as np
 from ..perceptron import Perceptron
 
-class CombinatorialPerceptron(Perceptron):
+class CombinatorialPerceptron_Numpy(Perceptron):
     """Perceptron classifier with combinatorial feature explosion.
 
     This classifier assumes that feature vectors do not depend on the
