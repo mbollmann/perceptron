@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections import defaultdict
 import itertools as it
 import numpy as np
 from ..perceptron import Perceptron
@@ -16,11 +17,10 @@ class GenerativePerceptron_Dict(Perceptron):
     """
 
     def reset_weights(self):
-        self._w = np.zeros(self.feature_count)
+        self._w = defaultdict(float)
 
     def _resize_weights(self, w):
-        if w.shape != (self.feature_count,):
-            w.resize(self.feature_count, refcheck=False)
+        pass
 
     def _preprocess_train(self, x, y):
         assert len(x) == len(y)
@@ -31,10 +31,12 @@ class GenerativePerceptron_Dict(Perceptron):
     def predict_features(self, features):
         """Predicts the best feature vector from a list of feature vectors.
         """
-        if self.feature_count > self._w.shape[0]:
-            self._w.resize(self.feature_count)
-        p = np.dot(features, self._w)
-        p_best = np.argwhere(p == np.amax(p)).flatten()
+        def make_score(feats):
+            return sum((self._w[f] * v for (f, v) in feats.iteritems()))
+
+        scores = [make_score(feats) for feats in features]
+        s_best = max(scores)
+        p_best = [n for (n, s) in enumerate(scores) if s == s_best]
         if len(p_best) > 1:
             # there is more than one solution -- pick one randomly, since
             # the order returned by the feature extractor might be
@@ -47,21 +49,25 @@ class GenerativePerceptron_Dict(Perceptron):
         if self.sequenced:
             (padded_x, history, startpos) = self._initialize_sequence(x)
             for i in range(startpos, startpos + len(x)):
-                (features, labels) = self._feature_extractor.generate_vector(
+                (features, labels) = self._feature_extractor.generate(
                     padded_x, i, history=history
                     )
-                if self.feature_count > self._w.shape[0]:
-                    self._w.resize(self.feature_count)
-                guess = np.argmax(np.dot(features, self._w))
-                history.append(labels[guess])
+                guess = labels[self.predict_features(features)]
+                history.append(guess)
             guesses = history[self._left_context_size:]
             return guesses
         else:
-            (features, labels) = self._feature_extractor.generate_vector(x)
-            if self.feature_count > self._w.shape[0]:
-                self._w.resize(self.feature_count)
-            guess = np.argmax(np.dot(features, self._w))
-            return labels[guess]
+            (features, labels) = self._feature_extractor.generate(x)
+            guess = labels[self.predict_features(features)]
+            return guess
+
+    def average_weights(self, all_w):
+        averaged = defaultdict(float)
+        divisor = float(len(all_w))
+        final_w = all_w[-1]
+        for feat, weight in final_w.iteritems():
+            averaged[feat] = sum((_w[feat] for _w in all_w)) / divisor
+        return averaged
 
     ############################################################################
     #### Standard (independent) prediction #####################################
@@ -71,12 +77,14 @@ class GenerativePerceptron_Dict(Perceptron):
         for n in range(len(x)):
             idx = permutation[n]
             (features, _) = \
-                self._feature_extractor.generate_vector(x[idx], truth=y[idx])
+                self._feature_extractor.generate(x[idx], truth=y[idx])
             guess = self.predict_features(features)
             if guess != 0:
                 # update step
-                self._w += self.learning_rate * features[0]
-                self._w -= self.learning_rate * features[guess]
+                for feat, value in features[0].iteritems():
+                    self._w[feat] += self.learning_rate * value
+                for feat, value in features[guess].iteritems():
+                    self._w[feat] -= self.learning_rate * value
 
     def _evaluate_training_set_independent(self, x, y):
         correct = sum(a == b for (a, b) in \
@@ -95,15 +103,17 @@ class GenerativePerceptron_Dict(Perceptron):
 
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
-                (features, labels) = self._feature_extractor.generate_vector(
+                (features, labels) = self._feature_extractor.generate(
                     pad_x, pos, history=history,
                     truth=truth_seq[pos - self._left_context_size]
                     )
                 guess = self.predict_features(features)
                 if guess != 0:
                     # update step
-                    self._w += self.learning_rate * features[0]
-                    self._w -= self.learning_rate * features[guess]
+                    for feat, value in features[0].iteritems():
+                        self._w[feat] += self.learning_rate * value
+                    for feat, value in features[guess].iteritems():
+                        self._w[feat] -= self.learning_rate * value
                 history.append(labels[guess])
 
     def _evaluate_training_set_sequenced(self, x, y):

@@ -92,6 +92,23 @@ class NumberFeatureGenerator(GenerativeExtractor):
     def _init_independent(self, dataset):
         self._label_mapper.extend(range(6))
 
+    def _generate_independent(self, x, truth=None):
+        (a, b) = x
+        f_false = {
+            'a && false': a,
+            'b && false': b,
+            'bias && false': 1.0
+            }
+        f_true = {
+            'a && true': a,
+            'b && true': b,
+            'bias && true': 1.0
+            }
+        if truth == 1:
+            return ([f_true, f_false], [1, 0])
+        else:
+            return ([f_false, f_true], [0, 1])
+
     def _generate_vector_independent(self, x, truth=None):
         (a, b) = x
         f_false = np.array([a,b,0,0,0,1])
