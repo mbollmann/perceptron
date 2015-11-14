@@ -60,13 +60,13 @@ def main():
         predictions = model.predict_all(sentences)
         for sentence in it.izip(sentences, predictions, gold_tags):
             for (word, pred_tag, gold_tag) in it.izip(*sentence):
-                print("{0}\t{1}".format(word, tag).encode("utf-8"))
+                print(u"{0}\t{1}".format(word, pred_tag).encode("utf-8"))
                 if gold_tag is not None and gold_tag == pred_tag:
                     correct_count += 1
             print() # line break between sentences
         if tag_count > 0:  # print evaluation
             log("Accuracy:  {0:7}/{1:7} correct ({2:.2f}%)"
-                .format(correct_count, tag_count, (correct_count/tag_count)*100))
+                .format(correct_count, tag_count, (float(correct_count)/tag_count)*100))
 
     log("Done.")
 
