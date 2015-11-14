@@ -100,3 +100,22 @@ class NumberFeatureGenerator(GenerativeExtractor):
             return (np.array([f_true, f_false]), [1, 0])
         else:
             return (np.array([f_false, f_true]), [0, 1])
+
+
+class ThreeClassesFeatureExtractor(FeatureExtractor):
+    _featureset = ('bias', 'a', 'b', 'c', 'd')
+
+    def _init_independent(self, dataset):
+        self._label_mapper.extend(self._featureset)
+    _init_sequenced = _init_independent
+
+    def _get_independent(self, x):
+        features = {'bias': 1.0}
+        for feat in self._featureset:
+            if feat in x:
+                features[feat] = 1.0
+        return features
+
+    def _get_sequenced(self, seq, pos, history=None):
+        return self._get_independent(seq[pos])
+

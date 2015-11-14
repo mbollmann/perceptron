@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 
+import itertools as it
 import numpy as np
 import pytest
 from mmb_perceptron.dict_impl import \
      CombinatorialPerceptron as CombinatorialPerceptron_Dict
 from mmb_perceptron.numpy_impl import \
      CombinatorialPerceptron as CombinatorialPerceptron_Numpy
-from helper_classes import BinaryFeatureExtractor, ContextualFeatureExtractor
+from helper_classes import \
+     BinaryFeatureExtractor, ContextualFeatureExtractor, \
+     ThreeClassesFeatureExtractor
 
+perceptron_numpy_only = [CombinatorialPerceptron_Numpy]
 perceptron_impls = [CombinatorialPerceptron_Dict, CombinatorialPerceptron_Numpy]
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
+@pytest.mark.parametrize('perceptron', perceptron_numpy_only)
 def test_logical_or(perceptron):
     x = [np.array([0,0,1]),
          np.array([0,1,1]),
@@ -24,7 +28,7 @@ def test_logical_or(perceptron):
     assert p.predict_vector(np.array([1,1,1])) == 1
     assert p.predict_vector(np.array([0,0,1])) == 0
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
+@pytest.mark.parametrize('perceptron', perceptron_numpy_only)
 def test_logical_and(perceptron):
     x = [np.array([0,0,1]),
          np.array([0,1,1]),
@@ -38,7 +42,7 @@ def test_logical_and(perceptron):
     assert p.predict_vector(np.array([1,1,1])) == 1
     assert p.predict_vector(np.array([0,0,1])) == 0
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
+@pytest.mark.parametrize('perceptron', perceptron_numpy_only)
 def test_three_classes(perceptron):
     x = [np.array([0,0,0,0,1]),
          np.array([0,1,0,0,1]),
@@ -64,23 +68,63 @@ def test_three_classes(perceptron):
     assert p.predict_vector(np.array([1,0,1,0,1])) == 2
     assert p.predict_vector(np.array([1,1,1,1,1])) == 2
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_logical_or_with_features(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_or_with_features(averaged, perceptron):
     x = ["False/False", "False/True", "True/False", "True/True"]
     y = ["False", "True", "True", "True"]
     p = perceptron(
+            averaged=averaged,
             iterations=100,
             feature_extractor=BinaryFeatureExtractor()
         )
     p.train(x, y)
     values = ["True/False", "True/True", "False/False", "False/True"]
     expected = ["True", "True", "False", "True"]
+    print(p._w)
     for v, e in zip(values, expected):
         assert p.predict(v) == e
     assert p.predict_all(values) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_logical_or_with_sequence_prediction(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_and_with_features(averaged, perceptron):
+    x = ["False/False", "False/True", "True/False", "True/True"]
+    y = ["False", "False", "False", "True"]
+    p = perceptron(
+            averaged=averaged,
+            iterations=100,
+            feature_extractor=BinaryFeatureExtractor()
+        )
+    p.train(x, y)
+    values = ["True/False", "True/True", "False/False", "False/True"]
+    expected = ["False", "True", "False", "False"]
+    for v, e in zip(values, expected):
+        assert p.predict(v) == e
+    assert p.predict_all(values) == expected
+
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_three_classes_with_features(averaged, perceptron):
+    x = ["", "b", "d", "bd", "a", "ad", "ac", "c", "bc"]
+    y = ["one", "one", "one", "one", "two", "two", "three", "three", "three"]
+    p = perceptron(
+        averaged=averaged,
+        feature_extractor=ThreeClassesFeatureExtractor(),
+        iterations=100
+        )
+    p.train(x, y)
+    values = ["foo", "d", "b", "a", "c",
+              "db", "ad", "bc", "ac", "abcd"]
+    expected = ["one", "one", "one", "two", "three",
+                "one", "two", "three", "three", "three"]
+    for v, e in zip(values, expected):
+        assert p.predict(v) == e
+    assert p.predict_all(values) == expected
+
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_or_with_sequence_prediction(averaged, perceptron):
     # rationale: sequence prediction should be identical to individual
     # prediction when the feature extractor is oblivious to it
     x = ["False/False", "False/True", "True/False", "True/True"]
@@ -101,8 +145,9 @@ def test_logical_or_with_sequence_prediction(perceptron):
         assert p.predict(s) == e
     assert p.predict_all(sequences) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_logical_or_with_sequence_training(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_or_with_sequence_training(averaged, perceptron):
     x = [["False/False", "False/True"],
          ["True/False", "True/True"],
          ["True/False", "False/True", "False/False"],
@@ -112,6 +157,7 @@ def test_logical_or_with_sequence_training(perceptron):
          ["True", "True", "False"],
          ["True", "False"]]
     p = perceptron(
+            averaged=averaged,
             iterations=50,
             feature_extractor=BinaryFeatureExtractor(),
             sequenced=True
@@ -127,8 +173,9 @@ def test_logical_or_with_sequence_training(perceptron):
         assert p.predict(s) == e
     assert p.predict_all(sequences) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_logical_or_with_dynamic_feature_growth(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_or_with_dynamic_feature_growth(averaged, perceptron):
     x = [["False/False", "False/True"],
          ["True/False", "True/True"],
          ["True/False", "False/True", "False/False"],
@@ -142,6 +189,7 @@ def test_logical_or_with_dynamic_feature_growth(perceptron):
     # automatically over time
     bfe._binary_featureset = ('bias',)
     p = perceptron(
+            averaged=averaged,
             iterations=50,
             feature_extractor=bfe,
             sequenced=True
@@ -151,8 +199,9 @@ def test_logical_or_with_dynamic_feature_growth(perceptron):
     expected = ["True", "True", "True", "False"]
     assert p.predict(seq) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_sequenced_number_tagging(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_sequenced_number_tagging(averaged, perceptron):
     """Dumb sequence tagging example: Perceptron learns to tag numbers with
     their respective string, except for 2 following 1 which is tagged
     'twelve'.
@@ -172,9 +221,10 @@ def test_sequenced_number_tagging(perceptron):
          ["TWO", "TWO", "TWO"],
          ["ONE", "ZERO", "TWO"]]
     p = perceptron(
-        iterations=100,
-        sequenced=True,
-        feature_extractor = ContextualFeatureExtractor()
+            averaged=averaged,
+            iterations=100,
+            sequenced=True,
+            feature_extractor = ContextualFeatureExtractor()
         )
     p.train(x, y)
     sequences = [["0", "1", "2"],
@@ -187,12 +237,14 @@ def test_sequenced_number_tagging(perceptron):
         assert p.predict(s) == e
     assert p.predict_all(sequences) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_can_be_pickled(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_or_after_pickling_and_unpickling(averaged, perceptron):
     import pickle
     x = ["False/False", "False/True", "True/False", "True/True"]
     y = ["False", "True", "True", "True"]
     p = perceptron(
+            averaged=averaged,
             iterations=100,
             feature_extractor=BinaryFeatureExtractor()
         )
