@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import itertools as it
 import numpy as np
 import pytest
 from mmb_perceptron.dict_impl import \
@@ -12,13 +13,15 @@ from helper_classes import \
 
 perceptron_impls = [GenerativePerceptron_Dict, GenerativePerceptron_Numpy]
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_logical_or(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_or_with_features(averaged, perceptron):
     x = [(0,0), (0,1), (1,0), (1,1)]
     y = [0, 1, 1, 1]
     p = perceptron(
-        feature_extractor = NumberFeatureGenerator(),
-        iterations = 100
+            averaged = averaged,
+            feature_extractor = NumberFeatureGenerator(),
+            iterations = 100
         )
     p.train(x, y)
     values = [(0,1), (1,0), (1,1), (0,0)]
@@ -27,13 +30,15 @@ def test_logical_or(perceptron):
         assert p.predict(v) == e
     assert p.predict_all(values) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_logical_and(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_and_with_features(averaged, perceptron):
     x = [(0,0), (0,1), (1,0), (1,1)]
     y = [0, 0, 0, 1]
     p = perceptron(
-        feature_extractor = NumberFeatureGenerator(),
-        iterations = 100
+            averaged = averaged,
+            feature_extractor = NumberFeatureGenerator(),
+            iterations = 100
         )
     p.train(x, y)
     values = [(0,1), (1,0), (1,1), (0,0)]
@@ -42,11 +47,13 @@ def test_logical_and(perceptron):
         assert p.predict(v) == e
     assert p.predict_all(values) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_logical_or_with_features(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_or_with_text_features(averaged, perceptron):
     x = ["False/False", "False/True", "True/False", "True/True"]
     y = ["False", "True", "True", "True"]
     p = perceptron(
+            averaged = averaged,
             feature_extractor = BinaryFeatureGenerator(),
             iterations = 100
         )
@@ -57,8 +64,9 @@ def test_logical_or_with_features(perceptron):
         assert p.predict(v) == e
     assert p.predict_all(values) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_character_length_tagging(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_character_length_tagging(averaged, perceptron):
     x = ["A", "AA", "AAA", "AAAA",
          "B", "BB", "BBB", "BBBB",
          "C", "CCC", "DDDD"]
@@ -66,6 +74,7 @@ def test_character_length_tagging(perceptron):
          "1xB", "2xB", "3xB", "4xB",
          "1xC", "3xC", "4xD"]
     p = perceptron(
+            averaged = averaged,
             feature_extractor = CharacterLengthGenerator(),
             iterations = 50
         )
@@ -76,8 +85,9 @@ def test_character_length_tagging(perceptron):
         assert p.predict(v) == e
     assert p.predict_all(values) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_sequenced_number_tagging(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_sequenced_number_tagging(averaged, perceptron):
     """Tests that GenerativePerceptron with a feature extractor doing
     combinatorial feature explosion is really equivalent to
     CombinatorialPerceptron.
@@ -97,6 +107,7 @@ def test_sequenced_number_tagging(perceptron):
          ["TWO", "TWO", "TWO"],
          ["ONE", "ZERO", "TWO"]]
     p = perceptron(
+        averaged = averaged,
         iterations = 100,
         sequenced = True,
         feature_extractor = ContextualFeatureGenerator()
@@ -112,12 +123,14 @@ def test_sequenced_number_tagging(perceptron):
         assert p.predict(s) == e
     assert p.predict_all(sequences) == expected
 
-@pytest.mark.parametrize('perceptron', perceptron_impls)
-def test_can_be_pickled(perceptron):
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_logical_or_after_pickling_and_unpickling(averaged, perceptron):
     import pickle
     x = ["False/False", "False/True", "True/False", "True/True"]
     y = ["False", "True", "True", "True"]
     p = perceptron(
+            averaged = averaged,
             feature_extractor = BinaryFeatureGenerator(),
             iterations = 100
         )
