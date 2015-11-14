@@ -24,4 +24,5 @@ setup(
     packages=['mmb_perceptron'],
     tests_require=['pytest'],
     cmdclass={'test': PyTest},
+    scripts=['bin/perceptron-tagger.py']
 )
