@@ -10,6 +10,8 @@ from mmb_perceptron.numpy_impl import \
 from helper_classes import \
      BinaryFeatureGenerator, CharacterLengthGenerator, \
      ContextualFeatureGenerator, NumberFeatureGenerator
+from helper_functions import \
+     _train_sequenced_number_tagging
 
 perceptron_impls = [GenerativePerceptron_Dict, GenerativePerceptron_Numpy]
 
@@ -92,27 +94,8 @@ def test_sequenced_number_tagging(averaged, perceptron):
     combinatorial feature explosion is really equivalent to
     CombinatorialPerceptron.
     """
-    x = [["0", "2", "1"],
-         ["0", "1", "2"],
-         ["1", "2", "2"],
-         ["2", "1", "2"],
-         ["1", "1", "1"],
-         ["2", "2", "2"],
-         ["1", "0", "2"]]
-    y = [["ZERO", "TWO", "ONE"],
-         ["ZERO", "ONE", "TWELVE"],
-         ["ONE", "TWELVE", "TWO"],
-         ["TWO", "ONE", "TWELVE"],
-         ["ONE", "ONE", "ONE"],
-         ["TWO", "TWO", "TWO"],
-         ["ONE", "ZERO", "TWO"]]
-    p = perceptron(
-        averaged = averaged,
-        iterations = 100,
-        sequenced = True,
-        feature_extractor = ContextualFeatureGenerator()
-        )
-    p.train(x, y)
+    p = _train_sequenced_number_tagging(averaged, perceptron,
+                                        ContextualFeatureGenerator())
     sequences = [["0", "1", "2"],
                  ["1", "0", "2", "1", "2", "2", "2"],
                  ["2", "1", "1", "2", "0"]]

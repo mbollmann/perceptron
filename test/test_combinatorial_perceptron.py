@@ -12,6 +12,8 @@ from mmb_perceptron.mixed_impl import \
 from helper_classes import \
      BinaryFeatureExtractor, ContextualFeatureExtractor, \
      ThreeClassesFeatureExtractor
+from helper_functions import \
+     _train_sequenced_number_tagging
 
 perceptron_numpy_only = [CombinatorialPerceptron_Numpy]
 perceptron_impls = [CombinatorialPerceptron_Dict,
@@ -263,3 +265,28 @@ def test_logical_or_after_pickling_and_unpickling(averaged, perceptron):
     for v, e in zip(values, expected):
         assert p.predict(v) == e
     assert p.predict_all(values) == expected
+
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_impls))
+def test_sequenced_number_tagging_after_pickling_and_unpickling(averaged, perceptron):
+    """Dumb sequence tagging example: Perceptron learns to tag numbers with
+    their respective string, except for 2 following 1 which is tagged
+    'twelve'.
+    """
+    import pickle
+    p = _train_sequenced_number_tagging(averaged, perceptron,
+                                        ContextualFeatureExtractor())
+    # serialization/unserialization
+    serialized = pickle.dumps(p)
+    del p
+    p = pickle.loads(serialized)
+    # test if everything still works
+    sequences = [["0", "1", "2"],
+                 ["1", "0", "2", "1", "2", "2", "2"],
+                 ["2", "1", "1", "2", "0"]]
+    expected = [["ZERO", "ONE", "TWELVE"],
+                ["ONE", "ZERO", "TWO", "ONE", "TWELVE", "TWO", "TWO"],
+                ["TWO", "ONE", "ONE", "TWELVE", "ZERO"]]
+    for s, e in zip(sequences, expected):
+        assert p.predict(s) == e
+    assert p.predict_all(sequences) == expected
