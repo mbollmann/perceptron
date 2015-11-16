@@ -5,7 +5,7 @@ import sys
 class InputFormatError(Exception):
     pass
 
-def log(text, type="info"):
+def log(text, type="info", encoding="utf-8"):
     if type == 'warn': sys.stderr.write("\033[1;33m")
     if type == 'error': sys.stderr.write("\033[1;31m")
     if type == 'info!': sys.stderr.write("\033[1;32m")
