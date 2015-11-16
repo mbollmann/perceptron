@@ -102,6 +102,18 @@ class FeatureExtractor(object):
         return self._label_mapper.map_to_vector(
             self._get_sequenced(seq, pos, history=history))
 
+    def get_fixed(self, seq, pos):
+        """Return the part of the feature representation that is independent of
+        the prediction history.
+        """
+        return {}
+
+    def get_dynamic(self, seq, pos, history=None):
+        """Return the part of the feature representation that dependent on
+        the prediction history.
+        """
+        return self._get_sequenced(seq, pos, history=history)
+
     def __getstate__(self):
         return {
             'label_mapper': self._label_mapper,

@@ -23,10 +23,43 @@ class Honnibal(FeatureExtractor):
             features[u'left_{0}_tag {1}'.format(i, history[pos - i])] = 1.0
             features[u'left_{0}_word {1}'.format(i, seq[pos - i])] = 1.0
             if i == 1:
-                features[u'this_word_left_tag ' + word + history[pos - i]] = 1.0
+                features[u'this_word_left_tag {0} {1}'\
+                         .format(word, history[pos - i])] = 1.0
             else:
                 features[u'left_upto_{0}_tags {1}'\
                          .format(i, ' '.join(history[(pos - i):pos]))] = 1.0
         for i in range(1, self._right_context_size + 1):
             features[u'right_{0}_word {1}'.format(i, seq[pos + i])] = 1.0
+        return features
+
+
+    ############################################################################
+    #### For Viterbi decoding, i.e. probably not needed ATM ####################
+    ############################################################################
+
+    def get_fixed(self, seq, pos):
+        word = seq[pos]
+        features = {}
+        features[u'bias'] = 1.0
+        features[u'this_word ' + word] = 1.0
+        features[u'this_suffix ' + word[-3:]] = 1.0
+        features[u'this_prefix ' + word[0]] = 1.0
+        features[u'left_suffix ' + seq[pos - 1][-3:]] = 1.0
+        features[u'right_suffix ' + seq[pos + 1][-3:]] = 1.0
+        for i in range(1, self._left_context_size + 1):
+            features[u'left_{0}_word {1}'.format(i, seq[pos - i])] = 1.0
+        for i in range(1, self._right_context_size + 1):
+            features[u'right_{0}_word {1}'.format(i, seq[pos + i])] = 1.0
+        return features
+
+    def get_dynamic(self, seq, pos, history=None):
+        features = {}
+        for i in range(1, self._left_context_size + 1):
+            features[u'left_{0}_tag {1}'.format(i, history[pos - i])] = 1.0
+            if i == 1:
+                features[u'this_word_left_tag {0} {1}'\
+                         .format(seq[pos], history[pos - i])] = 1.0
+            else:
+                features[u'left_upto_{0}_tags {1}'\
+                         .format(i, ' '.join(history[(pos - i):pos]))] = 1.0
         return features
