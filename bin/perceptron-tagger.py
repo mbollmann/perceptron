@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import gzip
 import itertools as it
 import operator as op
 import pickle
 import sys
-from mmb_perceptron.dict_impl import CombinatorialPerceptron
+from mmb_perceptron.mixed_impl import CombinatorialPerceptron
 from mmb_perceptron.feature_extractor import \
      Honnibal, Ratnaparkhi, Char
 from mmb_perceptron.helper.pos_tagging import \
@@ -47,12 +48,12 @@ def main():
             )
         model.train(sentences, gold_tags)
         log("Saving...")
-        with open(args.par, 'w') as f:
-            pickle.dump(model, f)
+        with gzip.open(args.par, 'wb') as f:
+            pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     if not args.train:
         log("Loading model...")
-        with open(args.par, 'r') as f:
+        with gzip.open(args.par, 'rb') as f:
             model = pickle.load(f)
             model.log_to = sys.stderr
         log("Tagging...")

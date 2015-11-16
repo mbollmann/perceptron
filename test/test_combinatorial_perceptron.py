@@ -7,12 +7,16 @@ from mmb_perceptron.dict_impl import \
      CombinatorialPerceptron as CombinatorialPerceptron_Dict
 from mmb_perceptron.numpy_impl import \
      CombinatorialPerceptron as CombinatorialPerceptron_Numpy
+from mmb_perceptron.mixed_impl import \
+     CombinatorialPerceptron as CombinatorialPerceptron_Mixed
 from helper_classes import \
      BinaryFeatureExtractor, ContextualFeatureExtractor, \
      ThreeClassesFeatureExtractor
 
 perceptron_numpy_only = [CombinatorialPerceptron_Numpy]
-perceptron_impls = [CombinatorialPerceptron_Dict, CombinatorialPerceptron_Numpy]
+perceptron_impls = [CombinatorialPerceptron_Dict,
+                    CombinatorialPerceptron_Numpy,
+                    CombinatorialPerceptron_Mixed]
 
 @pytest.mark.parametrize('perceptron', perceptron_numpy_only)
 def test_logical_or(perceptron):

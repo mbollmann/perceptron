@@ -11,6 +11,8 @@ from mmb_perceptron.dict_impl import \
      CombinatorialPerceptron as CombinatorialPerceptron_Dict
 from mmb_perceptron.numpy_impl import \
      CombinatorialPerceptron as CombinatorialPerceptron_Numpy
+from mmb_perceptron.mixed_impl import \
+     CombinatorialPerceptron as CombinatorialPerceptron_Mixed
 from mmb_perceptron.feature_extractor import \
      Honnibal, Ratnaparkhi, Char
 from mmb_perceptron.helper.pos_tagging import \
@@ -35,6 +37,8 @@ def make_models(modellist):
             models.append(CombinatorialPerceptron_Dict)
         elif m == 'numpy':
             models.append(CombinatorialPerceptron_Numpy)
+        elif m == 'mixed':
+            models.append(CombinatorialPerceptron_Mixed)
     return models
 
 def make_cv_splits(sentences, gold_tags, folds):
@@ -140,8 +144,8 @@ if __name__ == '__main__':
                         '(default: %(default)i)')
     parser.add_argument('-m', '--models',
                         nargs='+',
-                        choices=('dict','numpy'),
-                        default=['dict','numpy'],
+                        choices=('dict','numpy','mixed'),
+                        default=['dict','numpy','mixed'],
                         help='Models to include in the benchmark')
 
     model_group = parser.add_argument_group('model parameters')
