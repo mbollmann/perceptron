@@ -1,0 +1,2 @@
+numpy>=1.10.0
+progressbar2==3.5.0
