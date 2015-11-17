@@ -76,6 +76,7 @@ class GenerativePerceptron_Dict(Perceptron):
     def _perform_train_iteration_independent(self, x, y, permutation):
         correct, total = 0, len(x)
         for n in range(len(x)):
+            if (n % 100) == 0: self._progress(n)
             idx = permutation[n]
             (features, _) = \
                 self._feature_extractor.generate(x[idx], truth=y[idx])
@@ -88,7 +89,7 @@ class GenerativePerceptron_Dict(Perceptron):
                     self._w[feat] -= self.learning_rate * value
             else:
                 correct += 1
-        return 1.0 * correct / total
+        return (correct, total)
 
     ############################################################################
     #### Sequenced prediction ##################################################
@@ -104,6 +105,7 @@ class GenerativePerceptron_Dict(Perceptron):
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
                 total += 1
+                if (total % 100) == 0: self._progress(total)
                 (features, labels) = self._feature_extractor.generate(
                     pad_x, pos, history=history,
                     truth=truth_seq[pos - self._left_context_size]
@@ -118,5 +120,4 @@ class GenerativePerceptron_Dict(Perceptron):
                 else:
                     correct += 1
                 history.append(labels[guess])
-
-        return 1.0 * correct / total
+        return (correct, total)

@@ -5,16 +5,22 @@ import sys
 class InputFormatError(Exception):
     pass
 
-def log(text, type="info", encoding="utf-8"):
-    if type == 'warn': sys.stderr.write("\033[1;33m")
-    if type == 'error': sys.stderr.write("\033[1;31m")
-    if type == 'info!': sys.stderr.write("\033[1;32m")
-    sys.stderr.write("[{:^5}] ".format(type))
-    try:
+class Logger(object):
+    @staticmethod
+    def log(text, type="info", encoding="utf-8"):
+        if type == 'warn': sys.stderr.write("\033[1;33m")
+        if type == 'error': sys.stderr.write("\033[1;31m")
+        if type == 'info!': sys.stderr.write("\033[1;32m")
+        sys.stderr.write("[{:^5}] ".format(type))
+        try:
+            sys.stderr.write(text)
+        except UnicodeError:
+            sys.stderr.write(text.encode(encoding))
+        sys.stderr.write("\033[0m\n")
+
+    @staticmethod
+    def write(text):
         sys.stderr.write(text)
-    except UnicodeError:
-        sys.stderr.write(text.encode(encoding))
-    sys.stderr.write("\033[0m\n")
 
 def check_counts_for_mode(token_count, tag_count, train_mode):
     """Makes sure that all tokens have tags when using training mode,

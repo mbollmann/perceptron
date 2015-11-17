@@ -88,6 +88,7 @@ class CombinatorialPerceptron_Numpy(Perceptron):
     def _perform_train_iteration_independent(self, x, y, permutation):
         correct, total = 0, len(x)
         for n in range(len(x)):
+            if (n % 100) == 0: self._progress(n)
             idx = permutation[n]
             guess = np.argmax(np.dot(x[idx], self._w)) # predict_vector
             if guess != y[idx]:
@@ -96,7 +97,7 @@ class CombinatorialPerceptron_Numpy(Perceptron):
                 self._w[:, guess]  -= self.learning_rate * x[idx]
             else:
                 correct += 1
-        return 1.0 * correct / total
+        return (correct, total)
 
     ############################################################################
     #### Sequenced prediction ##################################################
@@ -112,6 +113,7 @@ class CombinatorialPerceptron_Numpy(Perceptron):
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
                 total += 1
+                if (total % 100) == 0: self._progress(total)
                 vec = self._feature_extractor.get_vector(
                     pad_x, pos, history=history
                     )
@@ -126,5 +128,4 @@ class CombinatorialPerceptron_Numpy(Perceptron):
                 else:
                     correct += 1
                 history.append(self._label_mapper.get_name(guess))
-
-        return 1.0 * correct / total
+        return (correct, total)

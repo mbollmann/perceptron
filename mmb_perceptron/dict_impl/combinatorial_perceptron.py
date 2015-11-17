@@ -112,6 +112,7 @@ class CombinatorialPerceptron_Dict(Perceptron):
     def _perform_train_iteration_independent(self, x, y, permutation):
         correct, total = 0, len(x)
         for n in range(len(x)):
+            if (n % 100) == 0: self._progress(n)
             idx = permutation[n]
             guess = self.predict_features(x[idx])
             truth = y[idx]
@@ -122,7 +123,7 @@ class CombinatorialPerceptron_Dict(Perceptron):
                     self._w[feat][guess] -= self.learning_rate * value
             else:
                 correct += 1
-        return 1.0 * correct / total
+        return (correct, total)
 
     ############################################################################
     #### Sequenced prediction ##################################################
@@ -138,6 +139,7 @@ class CombinatorialPerceptron_Dict(Perceptron):
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
                 total += 1
+                if (total % 100) == 0: self._progress(total)
                 features = self._feature_extractor.get(
                     pad_x, pos, history=history
                     )
@@ -151,5 +153,4 @@ class CombinatorialPerceptron_Dict(Perceptron):
                 else:
                     correct += 1
                 history.append(guess)
-
-        return 1.0 * correct / total
+        return (correct, total)

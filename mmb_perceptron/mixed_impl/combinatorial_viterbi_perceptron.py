@@ -120,10 +120,11 @@ class CombinatorialViterbiPerceptron_Mixed(Perceptron):
 
             # predict whole sequence first
             history += self.predict(x[idx])
+            total += len(x[idx])
+            self._progress(total)
 
             # loop over sequence elements
             for pos in range(start_pos, start_pos + len(x[idx])):
-                total += 1
                 features = self._feature_extractor.get(
                     pad_x, pos, history=history
                     )
@@ -140,4 +141,4 @@ class CombinatorialViterbiPerceptron_Mixed(Perceptron):
                     correct += 1
                 history.append(guess)
 
-        return 1.0 * correct / total
+        return (correct, total)

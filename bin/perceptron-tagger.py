@@ -6,12 +6,13 @@ import gzip
 import itertools as it
 import operator as op
 import pickle
+import progressbar as pb
 import sys
 from mmb_perceptron.mixed_impl import CombinatorialPerceptron
 from mmb_perceptron.feature_extractor import \
      Honnibal, Ratnaparkhi, Char
 from mmb_perceptron.helper.pos_tagging import \
-     log, check_counts_for_mode, extract_sentences, preprocess_sentences
+     Logger, check_counts_for_mode, extract_sentences, preprocess_sentences
 
 def get_feature_extractor(name, context_size):
     if name == 'Honnibal':
@@ -26,10 +27,10 @@ def get_feature_extractor(name, context_size):
     return feature
 
 def main():
-    log("Reading input data...")
+    Logger.log("Reading input data...")
     (sentences, gold_tags, token_count, tag_count) = \
         extract_sentences(args.infile, encoding=args.enc)
-    log("Parsed {0} token(s) with {1} tags in {2} sentence(s)."
+    Logger.log("Parsed {0} token(s) with {1} tags in {2} sentence(s)."
         .format(token_count, tag_count, len(sentences)))
     check_counts_for_mode(token_count, tag_count, args.train)
 
@@ -37,26 +38,32 @@ def main():
         sentences = preprocess_sentences(sentences)
 
     if args.train:
-        log("Training...")
+        Logger.log("Training...")
         model = CombinatorialPerceptron(
             averaged=args.averaging,
             iterations=args.iterations,
             learning_rate=1,
             sequenced=True,
-            feature_extractor=get_feature_extractor(args.feature, args.context_size),
-            log_to=sys.stderr
+            feature_extractor=get_feature_extractor(args.feature, args.context_size)
             )
-        model.train(sentences, gold_tags)
-        log("Saving...")
+        widgets = [pb.Percentage(), ' ', pb.Bar(marker='#', left='[', right=']'), ' ',
+                   pb.ETA(), '   ', pb.AbsoluteETA()]
+        with pb.ProgressBar(max_value=(token_count * args.iterations),
+                            redirect_stderr=True,
+                            widgets=widgets) as bar:
+            model.log_to = Logger
+            model.progress_func = bar.update
+            model.train(sentences, gold_tags)
+        Logger.log("Saving...")
         with gzip.open(args.par, 'wb') as f:
             pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     if not args.train:
-        log("Loading model...")
+        Logger.log("Loading model...")
         with gzip.open(args.par, 'rb') as f:
             model = pickle.load(f)
-            model.log_to = sys.stderr
-        log("Tagging...")
+            model.log_to = Logger
+        Logger.log("Tagging...")
         correct_count = 0
         predictions = model.predict_all(sentences)
         for sentence in it.izip(sentences, predictions, gold_tags):
@@ -66,10 +73,11 @@ def main():
                     correct_count += 1
             print() # line break between sentences
         if tag_count > 0:  # print evaluation
-            log("Accuracy:  {0:7}/{1:7} correct ({2:.2f}%)"
-                .format(correct_count, tag_count, (float(correct_count)/tag_count)*100))
+            Logger.log("Accuracy:  {0:7}/{1:7} correct ({2:.2f}%)"
+                       .format(correct_count, tag_count,
+                               (float(correct_count)/tag_count)*100))
 
-    log("Done.")
+    Logger.log("Done.")
 
 
 if __name__ == '__main__':

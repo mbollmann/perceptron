@@ -23,7 +23,8 @@ class Perceptron(object):
     _initial_history = []
 
     def __init__(self, iterations=5, learning_rate=1, averaged=True, \
-                 sequenced=False, feature_extractor=None, log_to=None):
+                 sequenced=False, feature_extractor=None, log_to=None, \
+                 progress_func=None):
         self.averaged = averaged
         self.sequenced = sequenced
         self.feature_extractor = feature_extractor
@@ -31,11 +32,16 @@ class Perceptron(object):
         self._label_mapper = LabelMapper()
         self.learning_rate = learning_rate
         self.log_to = log_to
+        self.progress_func = progress_func
 
     def _log(self, text):
         if self.log_to is not None:
             self.log_to.write(text)
             self.log_to.write("\n")
+
+    def _progress(self, value):
+        if self._progress_func is not None:
+            self._progress_func(value + self._running_total)
 
     @property
     def feature_count(self):
@@ -72,6 +78,16 @@ class Perceptron(object):
         if self._feature_extractor is not None:
             self._feature_extractor.sequenced = status
 
+    @property
+    def progress_func(self):
+        return self._progress_func
+
+    @progress_func.setter
+    def progress_func(self, value):
+        if not (callable(value) or value is None):
+            raise ValueError("progress_func must be callable or None")
+        self._progress_func = value
+
     def train(self, x, y, seed=1):
         """Train the perceptron on independent data points.
 
@@ -87,6 +103,7 @@ class Perceptron(object):
 
         (x, y) = self._preprocess_train(x, y)
         self.reset_weights()
+        self._running_total = 0
         all_w = []
 
         for iteration in range(self.iterations):
@@ -96,7 +113,9 @@ class Perceptron(object):
             seed += 1
 
             # training
-            accuracy = train_func(x, y, permutation)
+            (correct, total) = train_func(x, y, permutation)
+            self._running_total += total
+            accuracy = 1.0 * correct / total
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
             if self.averaged and self.iterations > 1:
                 all_w.append(self._w.copy())
