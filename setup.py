@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 class PyTest(TestCommand):
@@ -21,7 +21,8 @@ setup(
     license='MIT License',
     author='Marcel Bollmann',
     author_email='bollmann@linguistics.rub.de',
-    packages=['mmb_perceptron'],
+    packages=find_packages(),
+    install_requires=['numpy>=1.8.0', 'progressbar2==3.5.0'],
     tests_require=['pytest'],
     cmdclass={'test': PyTest},
     scripts=['bin/perceptron-tagger.py']
