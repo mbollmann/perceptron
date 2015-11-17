@@ -8,7 +8,8 @@ import operator as op
 import pickle
 import progressbar as pb
 import sys
-from mmb_perceptron.mixed_impl import CombinatorialPerceptron
+from mmb_perceptron.mixed_impl import \
+     CombinatorialPerceptron, CombinatorialViterbiPerceptron
 from mmb_perceptron.feature_extractor import \
      Honnibal, Ratnaparkhi, Char
 from mmb_perceptron.helper.pos_tagging import \
@@ -39,7 +40,9 @@ def main():
 
     if args.train:
         Logger.log("Training...")
-        model = CombinatorialPerceptron(
+        perceptron_model = CombinatorialPerceptron if not args.structured \
+                                                   else CombinatorialViterbiPerceptron
+        model = perceptron_model(
             averaged=args.averaging,
             iterations=args.iterations,
             learning_rate=1,
@@ -138,6 +141,11 @@ if __name__ == '__main__':
                                    '(useful if you want to do your own '
                                    'preprocessing, or use this tagger for some '
                                    'other labelling problem)'))
+    model_group.add_argument('--structured',
+                             action='store_true',
+                             default=False,
+                             help=('Use structured prediction with Viterbi '
+                                   'algorithm (CAUTION: extremely slow!)'))
 
     args = parser.parse_args()
     main()
