@@ -105,6 +105,17 @@ class CombinatorialPerceptron_Dict(Perceptron):
                     sum((_w[feat][label] for _w in all_w)) / divisor
         return averaged
 
+    def print_weights(self):
+        all_labels = self.all_labels
+        # header
+        print("\t" + "\t".join(all_labels).encode("utf-8"))
+        # feature weights
+        for feature, label_weights in self._w.iteritems():
+            row = [feature]
+            for label in all_labels:
+                row.append(unicode(label_weights[label]))
+            print("\t".join(row).encode("utf-8"))
+
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################

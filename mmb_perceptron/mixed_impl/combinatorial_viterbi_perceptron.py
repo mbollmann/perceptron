@@ -107,6 +107,17 @@ class CombinatorialViterbiPerceptron_Mixed(Perceptron):
             averaged[feat] = sum((_w[feat] for _w in all_w)) / divisor
         return averaged
 
+    def print_weights(self):
+        all_labels = self.all_labels
+        # header
+        print("\t" + "\t".join(all_labels).encode("utf-8"))
+        sorted_indices = self._label_mapper.map_list(all_labels)
+        # feature weights
+        for feature, label_weights in self._w.iteritems():
+            row = [feature]
+            row.extend(label_weights[sorted_indices])
+            print("\t".join(map(unicode, row)).encode("utf-8"))
+
     ############################################################################
     #### Sequenced prediction ##################################################
     ############################################################################

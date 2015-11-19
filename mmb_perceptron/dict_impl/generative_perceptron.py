@@ -69,6 +69,11 @@ class GenerativePerceptron_Dict(Perceptron):
             averaged[feat] = sum((_w[feat] for _w in all_w)) / divisor
         return averaged
 
+    def print_weights(self):
+        # feature weights
+        for feature_and_weight in self._w.iteritems():
+            print("\t".join(*feature_and_weight).encode("utf-8"))
+
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################

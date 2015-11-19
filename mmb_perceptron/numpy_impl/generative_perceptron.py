@@ -63,6 +63,16 @@ class GenerativePerceptron_Numpy(Perceptron):
             guess = np.argmax(np.dot(features, self._w))
             return labels[guess]
 
+    def print_weights(self):
+        # feature weights
+        for (idx, weight) in enumerate(self._w):
+            if self._feature_extractor is not None:
+                # urgh
+                feat = self._feature_extractor._label_mapper.get_name(idx)
+            else:
+                feat = unicode(idx)
+            print("\t".join((feat, unicode(weight))).encode("utf-8"))
+
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################

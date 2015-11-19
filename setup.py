@@ -25,5 +25,5 @@ setup(
     install_requires=['numpy>=1.8.0', 'progressbar2==3.5.0'],
     tests_require=['pytest'],
     cmdclass={'test': PyTest},
-    scripts=['bin/perceptron-tagger.py']
+    scripts=['bin/perceptron-tagger.py', 'bin/perceptron-print-weights.py']
 )

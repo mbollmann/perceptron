@@ -137,6 +137,13 @@ class Perceptron(object):
         """
         return [self.predict(y) for y in x]
 
+    def print_weights(self):
+        """Print the learned weights in a human-readable format.
+
+        Should be overridden by the specific perceptron implementations.
+        """
+        print(self._w)
+
     ############################################################################
     #### Serialization via pickle ##############################################
     ############################################################################

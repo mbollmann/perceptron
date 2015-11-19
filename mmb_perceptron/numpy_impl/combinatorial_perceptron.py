@@ -23,6 +23,14 @@ class CombinatorialPerceptron_Numpy(Perceptron):
     Use this classifier, for example, for the AND/OR problem or for POS tagging.
     """
 
+    @property
+    def all_labels(self):
+        try:
+            return self._all_labels
+        except AttributeError:
+            self._all_labels = sorted(self._label_mapper)
+            return self._all_labels
+
     def reset_weights(self):
         self._w = np.zeros((self.feature_count, len(self._label_mapper)))
 
@@ -80,6 +88,22 @@ class CombinatorialPerceptron_Numpy(Perceptron):
             new_x = self._preprocess_data(x)
             new_y = np.array(self._label_mapper.map_list(y))
         return (new_x, new_y)
+
+    def print_weights(self):
+        all_labels = self.all_labels
+        sorted_indices = self._label_mapper.map_list(all_labels)
+        # header
+        print("\t" + "\t".join(all_labels).encode("utf-8"))
+        # feature weights
+        for (idx, label_weights) in enumerate(self._w):
+            if self._feature_extractor is not None:
+                # urgh
+                feat = self._feature_extractor._label_mapper.get_name(idx)
+            else:
+                feat = unicode(idx)
+            row = [feat]
+            row.extend(label_weights[sorted_indices])
+            print("\t".join(map(unicode, row)).encode("utf-8"))
 
     ############################################################################
     #### Standard (independent) prediction #####################################
