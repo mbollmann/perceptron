@@ -52,7 +52,7 @@ class CombinatorialPerceptron_Numpy(Perceptron):
                     )
                 guess = self.predict_vector(vector)
                 history.append(self._label_mapper.get_name(guess))
-                guesses = history[self._left_context_size:]
+            guesses = history[self._left_context_size:]
             return guesses
         else:
             guess = self.predict_vector(

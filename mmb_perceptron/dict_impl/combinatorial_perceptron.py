@@ -64,7 +64,7 @@ class CombinatorialPerceptron_Dict(Perceptron):
                     )
                 guess = self.predict_features(features)
                 history.append(guess)
-                guesses = history[self._left_context_size:]
+            guesses = history[self._left_context_size:]
             return guesses
         else:
             guess = self.predict_features(self._feature_extractor.get(x))

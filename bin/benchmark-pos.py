@@ -17,7 +17,7 @@ from mmb_perceptron.mixed_impl import \
 from mmb_perceptron.feature_extractor import \
      Honnibal, Ratnaparkhi, Char
 from mmb_perceptron.helper.pos_tagging import \
-     log, check_counts_for_mode, extract_sentences, preprocess_sentences
+     Logger, check_counts_for_mode, extract_sentences, preprocess_sentences
 
 def get_feature_extractor(name, context_size):
     if name == 'Honnibal':
@@ -61,10 +61,10 @@ def make_cv_splits(sentences, gold_tags, folds):
         yield (training_split, eval_split)
 
 def main():
-    log("Reading input data...")
+    Logger.log("Reading input data...")
     (sentences, gold_tags, token_count, tag_count) = \
         extract_sentences(args.infile, encoding=args.enc)
-    log("Parsed {0} token(s) with {1} tags in {2} sentence(s)."
+    Logger.log("Parsed {0} token(s) with {1} tags in {2} sentence(s)."
         .format(token_count, tag_count, len(sentences)))
     check_counts_for_mode(token_count, tag_count, True)
     sentences = preprocess_sentences(sentences)
@@ -73,13 +73,13 @@ def main():
     all_splits = list(make_cv_splits(sentences, gold_tags, args.folds))
 
     for model in models:
-        log("Benchmarking model " + model.__name__)
+        Logger.log("Benchmarking model " + model.__name__)
         accuracies = []
         times_train = []
         times_tag = []
 
         for n, (training_data, eval_data) in enumerate(all_splits):
-            log("Processing fold {0}...".format(n+1))
+            Logger.log("Processing fold {0}...".format(n+1))
             p = model(
                 averaged=args.averaging,
                 iterations=args.iterations,
@@ -107,7 +107,7 @@ def main():
             delta_train = time_train - time_start
             delta_tag = time_tag - time_train
 
-            log("  fold {0}: accuracy {1:.4f}, training time {2:.4f}, tagging time {3:.4f}"\
+            Logger.log("  fold {0}: accuracy {1:.4f}, training time {2:.4f}, tagging time {3:.4f}"\
                 .format(n+1, accuracy, delta_train, delta_tag))
             accuracies.append(accuracy)
             times_train.append(delta_train)
@@ -116,15 +116,15 @@ def main():
         accuracies = np.array(accuracies)
         times_train = np.array(times_train)
         times_tag = np.array(times_tag)
-        log("Evaluation results of model " + model.__name__, type="info!")
-        log("       avg accuracy: {0:2.4f}   std: {1:.4f}"\
+        Logger.log("Evaluation results of model " + model.__name__, type="info!")
+        Logger.log("       avg accuracy: {0:2.4f}   std: {1:.4f}"\
             .format(np.mean(accuracies), np.std(accuracies)), type="info!")
-        log("  avg training time: {0:2.2f}     std: {1:2.2f}"\
+        Logger.log("  avg training time: {0:2.2f}     std: {1:2.2f}"\
             .format(np.mean(times_train), np.std(times_train)), type="info!")
-        log("   avg tagging time: {0:2.2f}     std: {1:2.2f}"\
+        Logger.log("   avg tagging time: {0:2.2f}     std: {1:2.2f}"\
             .format(np.mean(times_tag), np.std(times_tag)), type="info!")
 
-    log("Done.")
+    Logger.log("Done.")
 
 if __name__ == '__main__':
     description = "Benchmark for part-of-speech tagging with perceptron models."
