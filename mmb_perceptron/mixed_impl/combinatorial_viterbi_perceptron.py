@@ -61,7 +61,7 @@ class CombinatorialViterbiPerceptron_Mixed(Perceptron):
                     padded_x, i, history=s_path
                     )
                 scores = np.zeros(feature_count) + vec_fixed \
-                    + sum(v * self._w[f] for f, v in dyn_features.iteritems())
+                    + sum(self._w.get(f, 0) * v for f, v in dyn_features.iteritems())
                 if feature_count > b_lim:
                     n_best = np.argpartition(scores, -b_lim)[-b_lim:]  # n-best only
                 else:
@@ -117,6 +117,14 @@ class CombinatorialViterbiPerceptron_Mixed(Perceptron):
             row = [feature]
             row.extend(label_weights[sorted_indices])
             print("\t".join(map(unicode, row)).encode("utf-8"))
+
+    def prune_weights(self):
+        prunable = []
+        for feature, label_weights in self._w.iteritems():
+            if all((abs(w) < self.prune_limit for w in label_weights)):
+                prunable.append(feature)
+        for f in prunable:
+            del self._w[f]
 
     ############################################################################
     #### Sequenced prediction ##################################################

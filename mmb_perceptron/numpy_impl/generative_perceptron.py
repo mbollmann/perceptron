@@ -48,18 +48,15 @@ class GenerativePerceptron_Numpy(Perceptron):
             (padded_x, history, startpos) = self._initialize_sequence(x)
             for i in range(startpos, startpos + len(x)):
                 (features, labels) = self._feature_extractor.generate_vector(
-                    padded_x, i, history=history
+                    padded_x, i, history=history, grow=False
                     )
-                if self.feature_count > self._w.shape[0]:
-                    self._w.resize(self.feature_count)
                 guess = np.argmax(np.dot(features, self._w))
                 history.append(labels[guess])
             guesses = history[self._left_context_size:]
             return guesses
         else:
-            (features, labels) = self._feature_extractor.generate_vector(x)
-            if self.feature_count > self._w.shape[0]:
-                self._w.resize(self.feature_count)
+            (features, labels) = \
+                self._feature_extractor.generate_vector(x, grow=False)
             guess = np.argmax(np.dot(features, self._w))
             return labels[guess]
 
@@ -73,6 +70,16 @@ class GenerativePerceptron_Numpy(Perceptron):
                 feat = unicode(idx)
             print("\t".join((feat, unicode(weight))).encode("utf-8"))
 
+    def prune_weights(self):
+        prunable = []
+        for (idx, w) in enumerate(self._w):
+            if abs(w) < self.prune_limit:
+                prunable.append(idx)
+        if prunable:
+            self._w = np.delete(self._w, prunable, axis=0)
+            if self._feature_extractor is not None:
+                self._feature_extractor._label_mapper.prune_indices(prunable)
+
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################
@@ -83,7 +90,8 @@ class GenerativePerceptron_Numpy(Perceptron):
             if (n % 100) == 0: self._progress(n)
             idx = permutation[n]
             (features, _) = \
-                self._feature_extractor.generate_vector(x[idx], truth=y[idx])
+                self._feature_extractor.generate_vector(x[idx], truth=y[idx],
+                                                        grow=True)
             guess = self.predict_features(features)
             if guess != 0:
                 # update step
@@ -110,7 +118,8 @@ class GenerativePerceptron_Numpy(Perceptron):
                 if (total % 100) == 0: self._progress(total)
                 (features, labels) = self._feature_extractor.generate_vector(
                     pad_x, pos, history=history,
-                    truth=truth_seq[pos - self._left_context_size]
+                    truth=truth_seq[pos - self._left_context_size],
+                    grow=True
                     )
                 guess = self.predict_features(features)
                 if guess != 0:

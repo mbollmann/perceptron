@@ -52,7 +52,7 @@ class CombinatorialPerceptron_Mixed(Perceptron):
         pass
 
     def predict_features(self, features):
-        scores = sum(value * self._w[feat] for feat, value in features.iteritems())
+        scores = sum(self._w.get(f, 0) * v for f, v in features.iteritems())
         return self._label_mapper.get_name(np.argmax(scores))
 
     def predict(self, x):
@@ -115,6 +115,14 @@ class CombinatorialPerceptron_Mixed(Perceptron):
             row = [feature]
             row.extend(label_weights[sorted_indices])
             print("\t".join(map(unicode, row)).encode("utf-8"))
+
+    def prune_weights(self):
+        prunable = []
+        for feature, label_weights in self._w.iteritems():
+            if all((abs(w) < self.prune_limit for w in label_weights)):
+                prunable.append(feature)
+        for f in prunable:
+            del self._w[f]
 
     ############################################################################
     #### Standard (independent) prediction #####################################

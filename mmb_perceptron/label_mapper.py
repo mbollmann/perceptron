@@ -61,5 +61,21 @@ class LabelMapper(collections.Mapping):
             vec[self[name]] = value
         return vec
 
+    def get_vector(self, feat):
+        vec = np.zeros(len(self.features))
+        for name, value in feat.iteritems():
+            if name in self.features:
+                vec[self[name]] = value
+        return vec
+
+    def prune_indices(self, indices):
+        """Prune the given indices.
+
+        Deletes the associated labels and remaps all indices.
+        """
+        for idx in sorted(indices, reverse=True):
+            del self.featurelist[idx]
+        self.features = {f: idx for idx, f in enumerate(self.featurelist)}
+
     def reset(self):
         self.__init__()

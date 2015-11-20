@@ -116,6 +116,14 @@ class CombinatorialPerceptron_Dict(Perceptron):
                 row.append(unicode(label_weights[label]))
             print("\t".join(row).encode("utf-8"))
 
+    def prune_weights(self):
+        prunable = []
+        for feature, label_weights in self._w.iteritems():
+            if all((abs(w) < self.prune_limit for w in label_weights.itervalues())):
+                prunable.append(feature)
+        for f in prunable:
+            del self._w[f]
+
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################

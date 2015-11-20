@@ -91,16 +91,23 @@ class FeatureExtractor(object):
         """
         raise NotImplementedError("function not implemented")
 
-    def _get_vector_independent(self, x):
+    def _get_vector_independent(self, x, grow=True):
         """Return a numerical feature vector for a given input."""
-        return self._label_mapper.map_to_vector(self._get_independent(x))
+        if grow:
+            return self._label_mapper.map_to_vector(self._get_independent(x))
+        else:
+            return self._label_mapper.get_vector(self._get_independent(x))
 
-    def _get_vector_sequenced(self, seq, pos, history=None):
+    def _get_vector_sequenced(self, seq, pos, history=None, grow=True):
         """Return a numerical feature vector for a given data point in a
         sequence.
         """
-        return self._label_mapper.map_to_vector(
-            self._get_sequenced(seq, pos, history=history))
+        if grow:
+            return self._label_mapper.map_to_vector(
+                self._get_sequenced(seq, pos, history=history))
+        else:
+            return self._label_mapper.get_vector(
+                self._get_sequenced(seq, pos, history=history))
 
     def get_fixed(self, seq, pos):
         """Return the part of the feature representation that is independent of

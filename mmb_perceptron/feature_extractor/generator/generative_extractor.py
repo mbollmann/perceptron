@@ -47,22 +47,28 @@ class GenerativeExtractor(FeatureExtractor):
     def _generate_sequenced(self, seq, pos, history=None, truth=None):
         raise NotImplementedError("function not implemented")
 
-    def _generate_vector_independent(self, x, truth=None):
+    def _generate_vector_independent(self, x, truth=None, grow=True):
         """Return candidates and their feature representations.
 
         Identical to _generate_independent(), except that F is now a matrix of
         numerical feature vectors.
         """
         (features, labels) = self._generate_independent(x, truth=truth)
-        for f in features:
-            self._label_mapper.extend(f)
-        vectors = np.array([self._label_mapper.map_to_vector(f) for f in features])
+        if grow:
+            for f in features:
+                self._label_mapper.extend(f)
+            vectors = np.array([self._label_mapper.map_to_vector(f) for f in features])
+        else:
+            vectors = np.array([self._label_mapper.get_vector(f) for f in features])
         return (vectors, labels)
 
-    def _generate_vector_sequenced(self, seq, pos, history=None, truth=None):
-        (features, labels) = self._generate_sequenced(seq, pos,
-                                                      history=history, truth=truth)
-        for f in features:
-            self._label_mapper.extend(f)
-        vectors = np.array([self._label_mapper.map_to_vector(f) for f in features])
+    def _generate_vector_sequenced(self, seq, pos, history=None, truth=None, grow=True):
+        (features, labels) = \
+            self._generate_sequenced(seq, pos, history=history, truth=truth)
+        if grow:
+            for f in features:
+                self._label_mapper.extend(f)
+            vectors = np.array([self._label_mapper.map_to_vector(f) for f in features])
+        else:
+            vectors = np.array([self._label_mapper.get_vector(f) for f in features])
         return (vectors, labels)

@@ -48,16 +48,16 @@ class CombinatorialPerceptron_Numpy(Perceptron):
             (padded_x, history, startpos) = self._initialize_sequence(x)
             for i in range(startpos, startpos + len(x)):
                 vector = self._feature_extractor.get_vector(
-                    padded_x, i, history=history
+                    padded_x, i, history=history, grow=False
                     )
-                if self.feature_count > self._w.shape[0]:
-                    self._w.resize((self.feature_count, len(self._label_mapper)))
                 guess = self.predict_vector(vector)
                 history.append(self._label_mapper.get_name(guess))
                 guesses = history[self._left_context_size:]
             return guesses
         else:
-            guess = self.predict_vector(self._feature_extractor.get_vector(x))
+            guess = self.predict_vector(
+                self._feature_extractor.get_vector(x, grow=False)
+                )
             return self._label_mapper.get_name(guess)
 
     def _preprocess_data(self, data):
@@ -105,6 +105,16 @@ class CombinatorialPerceptron_Numpy(Perceptron):
             row.extend(label_weights[sorted_indices])
             print("\t".join(map(unicode, row)).encode("utf-8"))
 
+    def prune_weights(self):
+        prunable = []
+        for (idx, label_weights) in enumerate(self._w):
+            if all((abs(w) < self.prune_limit for w in label_weights)):
+                prunable.append(idx)
+        if prunable:
+            self._w = np.delete(self._w, prunable, axis=0)
+            if self._feature_extractor is not None:
+                self._feature_extractor._label_mapper.prune_indices(prunable)
+
     ############################################################################
     #### Standard (independent) prediction #####################################
     ############################################################################
@@ -139,7 +149,7 @@ class CombinatorialPerceptron_Numpy(Perceptron):
                 total += 1
                 if (total % 100) == 0: self._progress(total)
                 vec = self._feature_extractor.get_vector(
-                    pad_x, pos, history=history
+                    pad_x, pos, history=history, grow=True
                     )
                 if len(vec) > self._w.shape[0]:
                     self._w.resize((self.feature_count, len(self._label_mapper)))

@@ -27,7 +27,9 @@ def test_logical_or(perceptron):
          np.array([1,0,1]),
          np.array([1,1,1])]
     y = np.array([0, 1, 1, 1])
-    p = perceptron(iterations=100)
+    # Note: if we're working with vectors directly, we need to disable pruning,
+    #       since pruning might change the dimensionality
+    p = perceptron(iterations=100, pruning=False)
     p.train(x, y)
     assert p.predict_vector(np.array([0,1,1])) == 1
     assert p.predict_vector(np.array([1,0,1])) == 1
@@ -41,7 +43,7 @@ def test_logical_and(perceptron):
          np.array([1,0,1]),
          np.array([1,1,1])]
     y = np.array([0, 0, 0, 1])
-    p = perceptron(iterations=100)
+    p = perceptron(iterations=100, pruning=False)
     p.train(x, y)
     assert p.predict_vector(np.array([0,1,1])) == 0
     assert p.predict_vector(np.array([1,0,1])) == 0
@@ -61,7 +63,7 @@ def test_three_classes(perceptron):
          np.array([0,1,1,0,1])
          ]
     y = np.array([0,0,0,0,1,1,2,2,2])
-    p = perceptron(iterations=100)
+    p = perceptron(iterations=100, pruning=False)
     p.train(x, y)
     assert p.predict_vector(np.array([0,0,0,0,1])) == 0
     assert p.predict_vector(np.array([0,0,0,1,1])) == 0

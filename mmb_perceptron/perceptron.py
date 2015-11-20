@@ -10,6 +10,8 @@ class Perceptron(object):
     This class implements methods common to all perceptron variants, but cannot
     be used by itself.  Always use derived classes instead.
     """
+    prune_limit = 0.0001
+
     _feature_extractor = None
     _w = None
 
@@ -24,7 +26,7 @@ class Perceptron(object):
 
     def __init__(self, iterations=5, learning_rate=1, averaged=True, \
                  sequenced=False, feature_extractor=None, log_to=None, \
-                 progress_func=None):
+                 progress_func=None, pruning=True):
         self.averaged = averaged
         self.sequenced = sequenced
         self.feature_extractor = feature_extractor
@@ -33,6 +35,7 @@ class Perceptron(object):
         self.learning_rate = learning_rate
         self.log_to = log_to
         self.progress_func = progress_func
+        self.pruning = pruning
 
     def _log(self, text):
         if self.log_to is not None:
@@ -124,6 +127,10 @@ class Perceptron(object):
             self._log("Averaging weights...")
             self._w = self.average_weights(all_w)
 
+        if self.pruning:
+            self._log("Pruning weights...")
+            self.prune_weights()
+
     def average_weights(self, all_w):
         if self.sequenced: # check if feature count changed between iterations
             for w in all_w:
@@ -143,6 +150,14 @@ class Perceptron(object):
         Should be overridden by the specific perceptron implementations.
         """
         print(self._w)
+
+    def prune_weights(self):
+        """Prune the learned weights.
+
+        Perceptron implementations can use this, e.g., to remove zero-valued
+        features which don't contribute anything to the model.
+        """
+        pass
 
     ############################################################################
     #### Serialization via pickle ##############################################

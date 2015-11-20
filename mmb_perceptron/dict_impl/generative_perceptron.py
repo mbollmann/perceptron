@@ -32,7 +32,7 @@ class GenerativePerceptron_Dict(Perceptron):
         """Predicts the best feature vector from a list of feature vectors.
         """
         def make_score(feats):
-            return sum((self._w[f] * v for (f, v) in feats.iteritems()))
+            return sum((self._w.get(f, 0) * v for (f, v) in feats.iteritems()))
 
         scores = [make_score(feats) for feats in features]
         s_best = max(scores)
@@ -71,8 +71,13 @@ class GenerativePerceptron_Dict(Perceptron):
 
     def print_weights(self):
         # feature weights
-        for feature_and_weight in self._w.iteritems():
-            print("\t".join(*feature_and_weight).encode("utf-8"))
+        for feature, weight in self._w.iteritems():
+            print("\t".join((feature, unicode(weight))).encode("utf-8"))
+
+    def prune_weights(self):
+        prunable = [f for f, w in self._w.iteritems() if abs(w) < self.prune_limit]
+        for f in prunable:
+            del self._w[f]
 
     ############################################################################
     #### Standard (independent) prediction #####################################

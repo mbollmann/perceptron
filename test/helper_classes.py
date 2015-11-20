@@ -109,7 +109,7 @@ class NumberFeatureGenerator(GenerativeExtractor):
         else:
             return ([f_false, f_true], [0, 1])
 
-    def _generate_vector_independent(self, x, truth=None):
+    def _generate_vector_independent(self, x, truth=None, grow=True):
         (a, b) = x
         f_false = np.array([a,b,0,0,0,1])
         f_true = np.array([0,0,a,b,1,0])
