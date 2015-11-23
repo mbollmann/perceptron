@@ -86,7 +86,7 @@ def main():
                 print(u"{0}\t{1}".format(word, pred_tag).encode("utf-8"))
                 if gold_tag is not None and gold_tag == pred_tag:
                     correct_count += 1
-            print() # line break between sentences
+            print('') # line break between sentences
         if tag_count > 0:  # print evaluation
             Logger.log("Accuracy:  {0:7}/{1:7} correct ({2:.2f}%)"
                        .format(correct_count, tag_count,
