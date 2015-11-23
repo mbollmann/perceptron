@@ -10,13 +10,9 @@ class defaultdict_numpy(dict):
         self._dim = dim
 
     def __missing__(self, key):
-        return np.zeros(self._dim)
+        self[key] = np.zeros(self._dim)
+        return self[key]
 
-    def copy(self):
-        obj = defaultdict_numpy(self._dim)
-        for (key, value) in self.iteritems():
-            obj[key] = value.copy()
-        return obj
 
 class CombinatorialPerceptron_Mixed(Perceptron):
     """Perceptron classifier with combinatorial feature explosion.

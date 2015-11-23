@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import copy
 import itertools as it
 import numpy as np
 from .label_mapper import LabelMapper
@@ -121,7 +122,7 @@ class Perceptron(object):
             accuracy = 1.0 * correct / total
             self._log("Iteration {0:2}:  accuracy {1:.4f}".format(iteration, accuracy))
             if self.averaged and self.iterations > 1:
-                all_w.append(self._w.copy())
+                all_w.append(copy.deepcopy(self._w))
 
         if self.averaged and self.iterations > 1:
             self._log("Averaging weights...")
