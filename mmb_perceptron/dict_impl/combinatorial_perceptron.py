@@ -100,7 +100,7 @@ class CombinatorialPerceptron_Dict(Perceptron):
         divisor = float(len(all_w))
         final_w = all_w[-1]
         for feat, label_weights in final_w.iteritems():
-            for label, weight in label_weights.iteritems():
+            for label in label_weights:
                 averaged[feat][label] = \
                     sum((_w[feat][label] for _w in all_w)) / divisor
         return averaged

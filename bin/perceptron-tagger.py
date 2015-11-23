@@ -8,8 +8,12 @@ import operator as op
 import pickle
 import progressbar as pb
 import sys
+from mmb_perceptron.dict_impl import \
+     CombinatorialPerceptron as CombinatorialPerceptron_Dict
 from mmb_perceptron.mixed_impl import \
      CombinatorialPerceptron, CombinatorialViterbiPerceptron
+from mmb_perceptron.numpy_impl import \
+     CombinatorialPerceptron as CombinatorialPerceptron_Numpy
 from mmb_perceptron.feature_extractor import \
      Honnibal, Ratnaparkhi, Char
 from mmb_perceptron.helper.pos_tagging import \
@@ -27,6 +31,15 @@ def get_feature_extractor(name, context_size):
     feature.context_size = (context_size, context_size)
     return feature
 
+def get_perceptron_model(impl, structured):
+    if structured:
+        return CombinatorialViterbiPerceptron
+    if impl == 'dict':
+        return CombinatorialPerceptron_Dict
+    elif impl == 'numpy':
+        return CombinatorialPerceptron_Numpy
+    return CombinatorialPerceptron
+
 def main():
     Logger.log("Reading input data...")
     (sentences, gold_tags, token_count, tag_count) = \
@@ -40,8 +53,7 @@ def main():
 
     if args.train:
         Logger.log("Training...")
-        perceptron_model = CombinatorialPerceptron if not args.structured \
-                                                   else CombinatorialViterbiPerceptron
+        perceptron_model = get_perceptron_model(args.implementation, args.structured)
         model = perceptron_model(
             averaged=args.averaging,
             iterations=args.iterations,
@@ -146,6 +158,14 @@ if __name__ == '__main__':
                              default=False,
                              help=('Use structured prediction with Viterbi '
                                    'algorithm (CAUTION: extremely slow!)'))
+
+    internal_group = parser.add_argument_group('internal parameters')
+    internal_group.add_argument('--implementation',
+                                choices=('dict','mixed','numpy'),
+                                default='mixed',
+                                help=('Choose perceptron implementation to use '
+                                      '(should only affect computation speed) '
+                                      '(default: %(default)s)'))
 
     args = parser.parse_args()
     main()
