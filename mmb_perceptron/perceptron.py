@@ -226,7 +226,7 @@ class Perceptron(object):
             self._left_context.append(self._left_context_template.format(i))
             self._initial_history.append(self._initial_history_template.format(i))
         for j in range(right_context_size):
-            self._right_context.append(self._right_context_template.format(i))
+            self._right_context.append(self._right_context_template.format(j))
 
     def _initialize_sequence(self, seq):
         """Prepare a sequence of data points for sequence-based prediction.
