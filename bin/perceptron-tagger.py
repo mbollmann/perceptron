@@ -80,10 +80,18 @@ def main():
             model.log_to = Logger
         Logger.log("Tagging...")
         correct_count = 0
-        predictions = model.predict_all(sentences)
+        nbest = (args.nbest > 1)
+        if nbest:
+            predictions = model.predict_all_nbest(sentences, n=args.nbest)
+        else:
+            predictions = model.predict_all(sentences)
         for sentence in it.izip(sentences, predictions, gold_tags):
             for (word, pred_tag, gold_tag) in it.izip(*sentence):
-                print(u"{0}\t{1}".format(word, pred_tag).encode("utf-8"))
+                if nbest:
+                    print(u"{0}\t{1}".format(word, u"\t".join(pred_tag)).encode("utf-8"))
+                    pred_tag = pred_tag[0]
+                else:
+                    print(u"{0}\t{1}".format(word, pred_tag).encode("utf-8"))
                 if gold_tag is not None and gold_tag == pred_tag:
                     correct_count += 1
             print('') # line break between sentences
@@ -121,6 +129,11 @@ if __name__ == '__main__':
                         default=False,
                         help='Train on INPUT and save the resulting '
                              'parametrization to PARFILE')
+    parser.add_argument('-n', '--nbest',
+                        type=int,
+                        default=1,
+                        help=('Output the n-best suggestions for each token '
+                              '(ignored during training)'))
 
     model_group = parser.add_argument_group('model parameters')
     model_group.add_argument('-c', '--context-size',

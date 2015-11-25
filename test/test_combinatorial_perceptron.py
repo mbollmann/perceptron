@@ -15,6 +15,7 @@ from helper_classes import \
 from helper_functions import \
      _train_sequenced_number_tagging
 
+perceptron_with_nbest = [CombinatorialPerceptron_Mixed]
 perceptron_numpy_only = [CombinatorialPerceptron_Numpy]
 perceptron_impls = [CombinatorialPerceptron_Dict,
                     CombinatorialPerceptron_Numpy,
@@ -292,3 +293,67 @@ def test_sequenced_number_tagging_after_pickling_and_unpickling(averaged, percep
     for s, e in zip(sequences, expected):
         assert p.predict(s) == e
     assert p.predict_all(sequences) == expected
+
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_with_nbest))
+def test_logical_or_with_nbest(averaged, perceptron):
+    x = ["False/True", "False/False", "True/False", "True/True"]
+    y = ["True", "False", "True", "True"]
+    p = perceptron(
+            averaged=averaged,
+            iterations=100,
+            feature_extractor=BinaryFeatureExtractor()
+        )
+    p.train(x, y)
+    values = ["True/False", "True/True", "False/False", "False/True"]
+    expected = [["True", "False"], ["True", "False"],
+                ["False", "True"], ["True", "False"]]
+    for v, e in zip(values, expected):
+        assert p.predict_nbest(v, n=2) == e
+    assert p.predict_all_nbest(values, n=2) == expected
+
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_with_nbest))
+def test_logical_and_with_nbest(averaged, perceptron):
+    x = ["False/False", "False/True", "True/False", "True/True"]
+    y = ["False", "False", "False", "True"]
+    p = perceptron(
+            averaged=averaged,
+            iterations=100,
+            feature_extractor=BinaryFeatureExtractor()
+        )
+    p.train(x, y)
+    values = ["True/False", "True/True", "False/False", "False/True"]
+    expected = [["False", "True"], ["True", "False"],
+                ["False", "True"], ["False", "True"]]
+    for v, e in zip(values, expected):
+        assert p.predict_nbest(v, n=2) == e
+    assert p.predict_all_nbest(values, n=2) == expected
+
+@pytest.mark.parametrize('averaged,perceptron',
+                         it.product([True, False], perceptron_with_nbest))
+def test_logical_or_with_sequence_and_nbest(averaged, perceptron):
+    x = [["False/False", "False/True"],
+         ["True/False", "True/True"],
+         ["True/False", "False/True", "False/False"],
+         ["True/True", "False/False"]]
+    y = [["False", "True"],
+         ["True", "True"],
+         ["True", "True", "False"],
+         ["True", "False"]]
+    p = perceptron(
+            averaged=averaged,
+            iterations=50,
+            feature_extractor=BinaryFeatureExtractor(),
+            sequenced=True
+        )
+    p.train(x, y)
+    sequences = [["False/True", "True/False", "True/True", "False/False"],
+                 ["False/False", "False/False"],
+                 ["True/False", "True/True"]]
+    expected = [[["True", "False"], ["True", "False"], ["True", "False"], ["False", "True"]],
+                [["False", "True"], ["False", "True"]],
+                [["True", "False"], ["True", "False"]]]
+    for s, e in zip(sequences, expected):
+        assert p.predict_nbest(s, n=2) == e
+    assert p.predict_all_nbest(sequences, n=2) == expected

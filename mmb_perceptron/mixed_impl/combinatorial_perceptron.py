@@ -68,6 +68,38 @@ class CombinatorialPerceptron_Mixed(Perceptron):
             guess = self.predict_features(self._feature_extractor.get(x))
             return guess
 
+    def predict_features_nbest(self, features, n):
+        scores = sum(self._w.get(f, 0) * v for f, v in features.iteritems())
+        if not isinstance(scores, np.ndarray): # all f/v == 0, so scores == 0
+            scores = np.zeros(len(self._label_mapper))
+        nbest = np.argsort(scores)[::-1][:n]
+        # need to make sure first element is the same as with regular
+        # prediction, which isn't guaranteed in case of ties
+        top = np.argmax(scores)
+        if nbest[0] != top:
+            pos = np.nonzero(nbest == top)[0][0] # where is "top"?
+            nbest[pos] = nbest[0]
+            nbest[0] = top
+        return self._label_mapper.get_names(nbest)
+
+    def predict_nbest(self, x, n=1):
+        """Predict the class label of a given data point.
+        """
+        if self.sequenced:
+            (padded_x, history, startpos) = self._initialize_sequence(x)
+            guesses = []
+            for i in range(startpos, startpos + len(x)):
+                features = self._feature_extractor.get(
+                    padded_x, i, history=history
+                    )
+                guess = self.predict_features_nbest(features, n)
+                guesses.append(guess)
+                history.append(guess[0])
+            return guesses
+        else:
+            guess = self.predict_features_nbest(self._feature_extractor.get(x), n)
+            return guess
+
     def _preprocess_data(self, data):
         """Preprocess a full list of training data.
         """

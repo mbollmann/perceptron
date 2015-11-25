@@ -145,6 +145,14 @@ class Perceptron(object):
         """
         return [self.predict(y) for y in x]
 
+    def predict_all_nbest(self, x, n=1):
+        """Predict the n-best class labels of a given dataset (= list of data
+        points/sequences).
+
+        The prediction function itself must be implemented by derived classes.
+        """
+        return [self.predict_nbest(y, n=n) for y in x]
+
     def print_weights(self):
         """Print the learned weights in a human-readable format.
 
@@ -192,6 +200,11 @@ class Perceptron(object):
         """Predict the class label of a given data point or sequence.
         """
         raise NotImplementedError("predictor functionality not implemented")
+
+    def predict_nbest(self, x, n=1):
+        """Predict the n-best class labels of a given data point or sequence.
+        """
+        raise NotImplementedError("n-best predictor functionality not implemented")
 
     def reset_weights(self):
         """Reset learned weights.
